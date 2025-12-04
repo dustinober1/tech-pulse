@@ -85,16 +85,44 @@ tech-pulse/
 
 ### Usage
 
-1. **Run the main analysis:**
-   ```bash
-   python data_loader.py
-   ```
+#### Option 1: Interactive Dashboard (Recommended)
+```bash
+# Install dashboard dependencies
+pip install -r requirements-dashboard.txt
 
-   This will:
-   - Fetch 20 top stories from Hacker News
-   - Analyze sentiment of each story title
-   - Extract topics from the stories
-   - Display enhanced results with analysis
+# Run the dashboard
+streamlit run app.py
+```
+Access at http://localhost:8501
+
+The dashboard provides:
+- Interactive controls for story count and filtering
+- Real-time sentiment and topic analysis
+- Interactive charts and visualizations
+- Data export functionality
+- Mobile-responsive design
+
+#### Option 2: Command Line Analysis
+```bash
+# Run the main analysis
+python data_loader.py
+```
+
+This will:
+- Fetch 20 top stories from Hacker News
+- Analyze sentiment of each story title
+- Extract topics from the stories
+- Display enhanced results with analysis
+
+#### Option 3: Docker Deployment
+```bash
+# Build and run with Docker Compose
+docker-compose up
+
+# Or build manually
+docker build -t tech-pulse .
+docker run -p 8501:8501 tech-pulse
+```
 
 2. **Example output:**
    ```
@@ -134,11 +162,24 @@ python -m unittest test.test_data_loader -v
 ```
 
 ### Test Coverage
-- **33 total unit tests**
+- **50 total unit tests**
 - **100% pass rate**
 - **All functions tested** (as required by CLAUDE.md)
 - **Phase 1**: 22 tests (data fetching and processing)
 - **Phase 2**: 11 tests (sentiment and topic analysis)
+- **Phase 3**: 17 tests (dashboard functionality and configuration)
+
+### Dashboard Testing
+```bash
+# Run dashboard configuration tests
+python -m unittest test.test_dashboard_config -v
+
+# Run dashboard functionality tests
+python -m unittest test.test_dashboard_basic -v
+
+# Run all tests
+python -m unittest discover test/ -v
+```
 
 Test results are automatically saved to `test_results/` with timestamped reports.
 
@@ -233,23 +274,30 @@ df['custom_label'] = df['sentiment_score'].apply(
 - Topic modeling with BERTopic
 - Enhanced data processing
 
-### 🔄 Phase 3: Dashboard Visualization (Multi-Agent Plan)
-- **Multi-agent implementation** with 7 specialized teams
-- **Streamlit-based** interactive web dashboard
-- **Real-time data updates** and filtering capabilities
-- **Advanced visualizations** with Plotly and custom components
-- **Responsive design** for mobile and desktop compatibility
-- **Performance optimization** and caching strategies
-- **Comprehensive testing** with 95%+ coverage requirements
+### ✅ Phase 3: Dashboard Visualization (Completed)
+- **Interactive Streamlit dashboard** with real-time data visualization
+- **Multi-agent implementation** executed with 7 specialized development teams
+- **Advanced visualizations** using Plotly for interactive charts and metrics
+- **Responsive design** optimized for mobile and desktop viewing
+- **Real-time features** including auto-refresh and live data updates
+- **Export functionality** for CSV and JSON data download
+- **Comprehensive testing** with 17 passing unit tests covering all components
+- **Docker deployment** ready with containerization support
 
-**Agent Teams:**
-- Agent 1: Project Setup & Dependencies
-- Agent 2: UI/UX Layout Designer
-- Agent 3: Data Visualization Specialist
-- Agent 4: Backend Integration Specialist
-- Agent 5: Real-time Features Developer
-- Agent 6: Testing & Quality Assurance
-- Agent 7: Documentation & Deployment
+**Dashboard Features:**
+- **Control Panel**: Interactive sidebar with data filtering and refresh controls
+- **Metrics Row**: Real-time KPIs showing sentiment, engagement, and trending topics
+- **Visualizations**: Sentiment timeline, topic distribution, and story impact charts
+- **Data Table**: Expandable raw data view with clickable story links
+- **Export Options**: Download analyzed data in multiple formats
+
+**Files Created:**
+- `app.py` - Main Streamlit dashboard application
+- `dashboard_config.py` - Configuration and styling constants
+- `requirements-dashboard.txt` - Dashboard-specific dependencies
+- `README_DASHBOARD.md` - Comprehensive dashboard documentation
+- `Dockerfile` & `docker-compose.yml` - Containerization and deployment
+- `test/test_dashboard_*.py` - Comprehensive test suite (17 tests)
 
 ### 🔄 Phase 4: Advanced Features (Planned)
 - Real-time data streaming

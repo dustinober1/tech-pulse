@@ -1,0 +1,16 @@
+# Dashboard-specific dependencies for Tech-Pulse
+streamlit>=1.52.0
+plotly>=6.5.0
+altair>=6.0.0
+
+# Additional dependencies (should be installed from main requirements.txt)
+# requests>=2.31.0
+# pandas>=2.0.0
+# nltk>=3.8.0
+# bertopic>=0.17.0
+# hdbscan>=0.8.0
+
+# Dashboard-enhancement dependencies (optional)
+# streamlit-aggrid>=0.3.4  # Advanced data tables
+# streamlit-plotly-events>=0.0.6  # Plotly event handling
+# streamlit-option-menu>=0.3.6  # Navigation menu

@@ -1,0 +1,41 @@
+test_chart_config (test.test_dashboard_config.TestDashboardConfig.test_chart_config)
+Test chart configuration ... ok
+test_color_scheme (test.test_dashboard_config.TestDashboardConfig.test_color_scheme)
+Test color scheme has required colors ... ok
+test_config_consistency (test.test_dashboard_config.TestDashboardConfig.test_config_consistency)
+Test configuration consistency ... ok
+test_default_settings (test.test_dashboard_config.TestDashboardConfig.test_default_settings)
+Test default settings are valid ... ok
+test_error_messages (test.test_dashboard_config.TestDashboardConfig.test_error_messages)
+Test error messages ... ok
+test_help_text (test.test_dashboard_config.TestDashboardConfig.test_help_text)
+Test help text content ... ok
+test_loading_messages (test.test_dashboard_config.TestDashboardConfig.test_loading_messages)
+Test loading messages ... ok
+test_page_config_structure (test.test_dashboard_config.TestDashboardConfig.test_page_config_structure)
+Test that page configuration has required keys ... ok
+test_page_config_values (test.test_dashboard_config.TestDashboardConfig.test_page_config_values)
+Test that page config has valid values ... ok
+test_sentiment_colors (test.test_dashboard_config.TestDashboardConfig.test_sentiment_colors)
+Test sentiment color mapping ... ok
+test_success_messages (test.test_dashboard_config.TestDashboardConfig.test_success_messages)
+Test success messages ... ok
+test_basic_data_structure_compatibility (test.test_dashboard_basic.TestDashboardBasicFunctionality.test_basic_data_structure_compatibility)
+Test that our data structure is compatible with dashboard expectations ... ok
+test_dashboard_config_import (test.test_dashboard_basic.TestDashboardBasicFunctionality.test_dashboard_config_import)
+Test that dashboard configuration can be imported ... ok
+test_data_loader_integration (test.test_dashboard_basic.TestDashboardBasicFunctionality.test_data_loader_integration)
+Test that data_loader functions can be imported and work ... /Users/dustinober/tech-pulse/venv/lib/python3.13/site-packages/umap/__init__.py:9: ImportWarning: Tensorflow not installed; ParametricUMAP will be unavailable
+  warn(
+ok
+test_export_format_options (test.test_dashboard_basic.TestDashboardBasicFunctionality.test_export_format_options)
+Test that export formats are properly defined ... ok
+test_required_dependencies_available (test.test_dashboard_basic.TestDashboardBasicFunctionality.test_required_dependencies_available)
+Test that required dependencies are available ... ok
+test_sentiment_label_values (test.test_dashboard_basic.TestDashboardBasicFunctionality.test_sentiment_label_values)
+Test that sentiment labels have expected values ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 5.959s
+
+OK

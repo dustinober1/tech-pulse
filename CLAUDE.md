@@ -7,3 +7,4 @@
 - all functions must have a unit test file 
 - All test will be in the test/ folder
 - All test results will be in the test_results/ folder
+- at the end of each phase update the readme file
