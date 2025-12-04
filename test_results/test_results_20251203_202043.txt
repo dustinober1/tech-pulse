@@ -1,0 +1,135 @@
+================================================================================
+TECH-PULSE DATA LOADER TEST RESULTS
+================================================================================
+Test Run Date: 2025-12-03 20:20:43
+Tests Run: 33
+Failures: 1
+Errors: 0
+Skipped: 0
+Success Rate: 97.0%
+
+OVERALL RESULT: ✗ SOME TESTS FAILED
+
+STANDARD OUTPUT:
+----------------------------------------
+test_analyze_sentiment_empty_dataframe (test_data_loader.TestAnalyzeSentiment.test_analyze_sentiment_empty_dataframe)
+Test sentiment analysis with empty DataFrame ... ok
+test_analyze_sentiment_missing_title_column (test_data_loader.TestAnalyzeSentiment.test_analyze_sentiment_missing_title_column)
+Test sentiment analysis with missing title column ... ok
+test_analyze_sentiment_normal_case (test_data_loader.TestAnalyzeSentiment.test_analyze_sentiment_normal_case)
+Test sentiment analysis with normal data ... ok
+test_analyze_sentiment_with_empty_titles (test_data_loader.TestAnalyzeSentiment.test_analyze_sentiment_with_empty_titles)
+Test sentiment analysis with empty and NaN titles ... ok
+test_extract_story_data_complete (test_data_loader.TestExtractStoryData.test_extract_story_data_complete)
+Test extraction with complete story data ... ok
+test_extract_story_data_empty_dict (test_data_loader.TestExtractStoryData.test_extract_story_data_empty_dict)
+Test extraction with empty dictionary ... ok
+test_extract_story_data_minimal (test_data_loader.TestExtractStoryData.test_extract_story_data_minimal)
+Test extraction with minimal story data ... ok
+test_extract_story_data_missing_optional_fields (test_data_loader.TestExtractStoryData.test_extract_story_data_missing_optional_fields)
+Test extraction with missing optional fields ... ok
+test_extract_story_data_no_title (test_data_loader.TestExtractStoryData.test_extract_story_data_no_title)
+Test extraction with missing title ... ok
+test_extract_story_data_none_input (test_data_loader.TestExtractStoryData.test_extract_story_data_none_input)
+Test extraction with None input ... ok
+test_fetch_hn_data_custom_limit (test_data_loader.TestFetchHnData.test_fetch_hn_data_custom_limit)
+Test fetching with custom limit ... ok
+test_fetch_hn_data_ids_fetch_fails (test_data_loader.TestFetchHnData.test_fetch_hn_data_ids_fetch_fails)
+Test when initial ID fetch fails ... ok
+test_fetch_hn_data_skip_invalid_stories (test_data_loader.TestFetchHnData.test_fetch_hn_data_skip_invalid_stories)
+Test skipping stories without titles ... ok
+test_fetch_hn_data_story_details_fails (test_data_loader.TestFetchHnData.test_fetch_hn_data_story_details_fails)
+Test when individual story detail fetch fails ... ok
+test_fetch_hn_data_success (test_data_loader.TestFetchHnData.test_fetch_hn_data_success)
+Test successful fetch of HN data ... ok
+test_fetch_story_details_custom_url (test_data_loader.TestFetchStoryDetails.test_fetch_story_details_custom_url)
+Test fetching from custom base URL ... ok
+test_fetch_story_details_not_found (test_data_loader.TestFetchStoryDetails.test_fetch_story_details_not_found)
+Test handling of 404 errors ... ok
+test_fetch_story_details_success (test_data_loader.TestFetchStoryDetails.test_fetch_story_details_success)
+Test successful fetch of story details ... ok
+test_fetch_story_ids_connection_error (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_connection_error)
+Test handling of connection errors ... ok
+test_fetch_story_ids_custom_url (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_custom_url)
+Test fetching from custom base URL ... ok
+test_fetch_story_ids_json_error (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_json_error)
+Test handling of JSON decoding errors ... ok
+test_fetch_story_ids_success (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_success)
+Test successful fetch of story IDs ... ok
+test_get_topics_custom_embedding_model (test_data_loader.TestGetTopics.test_get_topics_custom_embedding_model)
+Test topic modeling with custom embedding model ... FAIL
+test_get_topics_empty_dataframe (test_data_loader.TestGetTopics.test_get_topics_empty_dataframe)
+Test topic modeling with empty DataFrame ... ok
+test_get_topics_insufficient_data (test_data_loader.TestGetTopics.test_get_topics_insufficient_data)
+Test topic modeling with insufficient data (less than 2 valid titles) ... ok
+test_get_topics_missing_title_column (test_data_loader.TestGetTopics.test_get_topics_missing_title_column)
+Test topic modeling with missing title column ... ok
+test_get_topics_model_error (test_data_loader.TestGetTopics.test_get_topics_model_error)
+Test topic modeling with model error ... ok
+test_get_topics_normal_case (test_data_loader.TestGetTopics.test_get_topics_normal_case)
+Test topic modeling with normal data ... ok
+test_get_topics_with_none_titles (test_data_loader.TestGetTopics.test_get_topics_with_none_titles)
+Test topic modeling with None and NaN titles ... ok
+test_process_stories_to_dataframe_empty (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_empty)
+Test processing empty stories list ... ok
+test_process_stories_to_dataframe_none (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_none)
+Test processing None input ... ok
+test_process_stories_to_dataframe_single_story (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_single_story)
+Test processing single story ... ok
+test_process_stories_to_dataframe_success (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_success)
+Test processing valid stories list ... ok
+
+======================================================================
+FAIL: test_get_topics_custom_embedding_model (test_data_loader.TestGetTopics.test_get_topics_custom_embedding_model)
+Test topic modeling with custom embedding model
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1426, in patched
+    return func(*newargs, **newkeywargs)
+  File "/Users/dustinober/tech-pulse/test/test_data_loader.py", line 635, in test_get_topics_custom_embedding_model
+    mock_bertopic.assert_called_once_with(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        embedding_model='custom-model-name',
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        min_topic_size=2,
+        ^^^^^^^^^^^^^^^^^
+        verbose=True
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 990, in assert_called_once_with
+    raise AssertionError(msg)
+AssertionError: Expected 'BERTopic' to be called once. Called 0 times.
+
+----------------------------------------------------------------------
+Ran 33 tests in 0.013s
+
+FAILED (failures=1)
+
+----------------------------------------
+
+FAILURES:
+----------------------------------------
+FAIL: test_get_topics_custom_embedding_model (test_data_loader.TestGetTopics.test_get_topics_custom_embedding_model)
+Traceback (most recent call last):
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 1426, in patched
+    return func(*newargs, **newkeywargs)
+  File "/Users/dustinober/tech-pulse/test/test_data_loader.py", line 635, in test_get_topics_custom_embedding_model
+    mock_bertopic.assert_called_once_with(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        embedding_model='custom-model-name',
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        min_topic_size=2,
+        ^^^^^^^^^^^^^^^^^
+        verbose=True
+        ^^^^^^^^^^^^
+    )
+    ^
+  File "/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py", line 990, in assert_called_once_with
+    raise AssertionError(msg)
+AssertionError: Expected 'BERTopic' to be called once. Called 0 times.
+
+----------------------------------------
+
+TEST SUMMARY BY CLASS:
+----------------------------------------
