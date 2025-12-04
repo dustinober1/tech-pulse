@@ -1,58 +1,58 @@
 """
-Test suite for Tech-Pulse cache manager.
+Unit tests for cache_manager module.
 """
 
 import unittest
-import sys
 import os
 import tempfile
 import shutil
 import json
 import time
-from datetime import datetime, timedelta
 import pandas as pd
+from datetime import datetime, timedelta
+from unittest.mock import patch, MagicMock
 
-# Add the parent directory to the path
+# Import the module being tested
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from cache_manager import CacheManager, get_cache_manager, clear_cache, get_cache_statistics
+from cache_manager import CacheManager
 
 
 class TestCacheManager(unittest.TestCase):
-    """Test cache manager functionality"""
+    """Test cases for CacheManager class."""
 
     def setUp(self):
-        """Set up test environment"""
-        # Create temporary cache directory
+        """Set up test fixtures before each test method."""
+        # Create a temporary directory for test cache
         self.test_cache_dir = tempfile.mkdtemp()
-        self.cache_manager = CacheManager(cache_dir=self.test_cache_dir, expiry_minutes=1)
+        self.cache_manager = CacheManager(cache_dir=self.test_cache_dir, cache_duration_hours=1)
 
-        # Create test data
-        self.test_data = pd.DataFrame({
+        # Create sample test data
+        self.test_df = pd.DataFrame({
             'title': ['Test Story 1', 'Test Story 2', 'Test Story 3'],
             'score': [100, 200, 150],
             'descendants': [10, 20, 15],
-            'time': [datetime.now()] * 3,
+            'time': [datetime.now(), datetime.now(), datetime.now()],
             'url': ['http://test1.com', 'http://test2.com', 'http://test3.com']
         })
 
     def tearDown(self):
-        """Clean up test environment"""
+        """Clean up after each test method."""
+        # Remove the temporary cache directory
         if os.path.exists(self.test_cache_dir):
             shutil.rmtree(self.test_cache_dir)
 
-    def test_cache_initialization(self):
-        """Test cache manager initialization"""
-        self.assertEqual(self.cache_manager.cache_dir, self.test_cache_dir)
-        self.assertEqual(self.cache_manager.expiry_minutes, 1)
+    def test_initialization(self):
+        """Test CacheManager initialization."""
+        # Check that cache directory was created
         self.assertTrue(os.path.exists(self.test_cache_dir))
 
-    def test_cache_key_generation(self):
-        """Test cache key generation"""
-        key1 = self.cache_manager.get_cache_key(30, "basic")
-        key2 = self.cache_manager.get_cache_key(30, "basic")
-        key3 = self.cache_manager.get_cache_key(50, "basic")
-        key4 = self.cache_manager.get_cache_key(30, "advanced")
+    def test_generate_cache_key(self):
+        """Test cache key generation."""
+        key1 = self.cache_manager._generate_cache_key(30, "basic")
+        key2 = self.cache_manager._generate_cache_key(30, "basic")
+        key3 = self.cache_manager._generate_cache_key(50, "basic")
+        key4 = self.cache_manager._generate_cache_key(30, "advanced")
 
         # Same parameters should generate same key
         self.assertEqual(key1, key2)
@@ -61,190 +61,176 @@ class TestCacheManager(unittest.TestCase):
         self.assertNotEqual(key1, key3)
         self.assertNotEqual(key1, key4)
 
-    def test_cache_validity_check(self):
-        """Test cache validity checking"""
-        # Non-existent file should be invalid
-        self.assertFalse(self.cache_manager.is_cache_valid("nonexistent.json"))
+        # Keys should be MD5 hashes (32 characters)
+        self.assertEqual(len(key1), 32)
 
-        # Create a test cache file
-        test_file = os.path.join(self.test_cache_dir, "test.json")
-        with open(test_file, 'w') as f:
-            f.write("{}")
+    def test_save_and_load_cache(self):
+        """Test saving and loading cache data."""
+        # Save data to cache
+        self.cache_manager.save_to_cache(self.test_df, limit=3, analysis_type="basic")
 
-        # Fresh file should be valid
-        self.assertTrue(self.cache_manager.is_cache_valid(test_file))
+        # Get cache file paths
+        cache_key = self.cache_manager._generate_cache_key(3, "basic")
+        metadata_file, data_file = self.cache_manager._get_cache_files(cache_key)
 
-        # Wait for expiry
-        time.sleep(1.1)  # Wait longer than expiry time (1 minute = 1 second for test)
-
-        # Expired file should be invalid
-        self.assertFalse(self.cache_manager.is_cache_valid(test_file))
-
-    def test_store_and_load_cache(self):
-        """Test storing and loading cached data"""
-        limit = 30
-        analysis_type = "basic"
-
-        # Store data in cache
-        self.cache_manager.cache_stories(self.test_data, limit, analysis_type)
+        # Check that files were created
+        self.assertTrue(os.path.exists(metadata_file))
+        self.assertTrue(os.path.exists(data_file))
 
         # Load data from cache
-        loaded_data = self.cache_manager.load_cached_stories(limit, analysis_type)
+        loaded_df = self.cache_manager.get_cached_data(limit=3, analysis_type="basic")
 
         # Verify data integrity
-        self.assertIsNotNone(loaded_data)
-        self.assertEqual(len(loaded_data), len(self.test_data))
-        pd.testing.assert_frame_equal(loaded_data, self.test_data)
+        self.assertIsNotNone(loaded_df)
+        self.assertEqual(len(loaded_df), 3)
+        self.assertEqual(list(loaded_df.columns), list(self.test_df.columns))
 
-    def test_cache_limit_mismatch(self):
-        """Test that cache is not loaded when limit doesn't match"""
-        limit = 30
-        analysis_type = "basic"
-
-        # Store data with limit=30
-        self.cache_manager.cache_stories(self.test_data, limit, analysis_type)
-
-        # Try to load with different limit
-        loaded_data = self.cache_manager.load_cached_stories(50, analysis_type)
-
-        # Should return None due to limit mismatch
-        self.assertIsNone(loaded_data)
+        # Compare specific values
+        pd.testing.assert_frame_equal(loaded_df.reset_index(drop=True), self.test_df.reset_index(drop=True))
 
     def test_cache_expiry(self):
-        """Test cache expiry functionality"""
-        limit = 30
-        analysis_type = "basic"
+        """Test cache expiration functionality."""
+        # Create a cache manager with 0 hours duration (immediate expiry)
+        expired_cache = CacheManager(cache_dir=self.test_cache_dir, cache_duration_hours=0)
 
-        # Store data in cache
-        self.cache_manager.cache_stories(self.test_data, limit, analysis_type)
+        # Save data
+        expired_cache.save_to_cache(self.test_df, limit=3)
 
-        # Load immediately should work
-        loaded_data = self.cache_manager.load_cached_stories(limit, analysis_type)
-        self.assertIsNotNone(loaded_data)
+        # Try to load immediately (should be expired)
+        loaded_df = expired_cache.get_cached_data(limit=3)
+        self.assertIsNone(loaded_df)
 
-        # Wait for expiry
-        time.sleep(1.1)  # Wait longer than expiry time
+    def test_cache_miss_conditions(self):
+        """Test various cache miss scenarios."""
+        # 1. Non-existent cache files
+        loaded_df = self.cache_manager.get_cached_data(limit=3)
+        self.assertIsNone(loaded_df)
 
-        # Load after expiry should return None
-        loaded_data = self.cache_manager.load_cached_stories(limit, analysis_type)
-        self.assertIsNone(loaded_data)
+        # 2. Mismatched cache key
+        self.cache_manager.save_to_cache(self.test_df, limit=3)
+        loaded_df = self.cache_manager.get_cached_data(limit=5)  # Different limit
+        self.assertIsNone(loaded_df)
 
-    def test_cache_info_retrieval(self):
-        """Test cache information retrieval"""
-        limit = 25
-        analysis_type = "basic"
+        # 3. Corrupted metadata file
+        self.cache_manager.save_to_cache(self.test_df, limit=3)
+        cache_key = self.cache_manager._generate_cache_key(3, "basic")
+        metadata_file, data_file = self.cache_manager._get_cache_files(cache_key)
+        with open(metadata_file, 'w') as f:
+            f.write("invalid json")
+        loaded_df = self.cache_manager.get_cached_data(limit=3)
+        self.assertIsNone(loaded_df)
 
-        # Initially should show no cache
-        cache_info = self.cache_manager.get_story_cache_info()
-        self.assertFalse(cache_info["exists"])
-        self.assertEqual(cache_info["stories_count"], 0)
+    def test_clear_cache(self):
+        """Test clearing cache functionality."""
+        # Save some data
+        self.cache_manager.save_to_cache(self.test_df, limit=3)
 
-        # Store data
-        self.cache_manager.cache_stories(self.test_data, limit, analysis_type)
+        # Get cache file paths
+        cache_key = self.cache_manager._generate_cache_key(3, "basic")
+        metadata_file, data_file = self.cache_manager._get_cache_files(cache_key)
 
-        # Should now show cache info
-        cache_info = self.cache_manager.get_story_cache_info()
-        self.assertTrue(cache_info["exists"])
-        self.assertEqual(cache_info["stories_count"], len(self.test_data))
-        self.assertEqual(cache_info["limit"], limit)
-        self.assertTrue(cache_info["is_valid"])
-
-    def test_cache_clearing(self):
-        """Test cache clearing functionality"""
-        limit = 30
-        analysis_type = "basic"
-
-        # Store data
-        self.cache_manager.cache_stories(self.test_data, limit, analysis_type)
-
-        # Verify cache exists
-        cache_info = self.cache_manager.get_story_cache_info()
-        self.assertTrue(cache_info["exists"])
+        # Verify files exist
+        self.assertTrue(os.path.exists(metadata_file))
+        self.assertTrue(os.path.exists(data_file))
 
         # Clear cache
         self.cache_manager.clear_cache()
 
-        # Verify cache is cleared
-        cache_info = self.cache_manager.get_story_cache_info()
-        self.assertFalse(cache_info["exists"])
+        # Verify files are deleted
+        self.assertFalse(os.path.exists(metadata_file))
+        self.assertFalse(os.path.exists(data_file))
 
-    def test_cache_statistics(self):
-        """Test cache statistics retrieval"""
-        limit = 30
-        analysis_type = "basic"
+    def test_get_cache_info(self):
+        """Test cache information retrieval."""
+        # Check info with empty cache
+        info = self.cache_manager.get_cache_info()
+        self.assertEqual(info['cache_dir'], self.test_cache_dir)
+        self.assertEqual(info['cache_duration_hours'], 1.0)
+        self.assertEqual(len(info['cache_entries']), 0)
 
-        # Initially should have minimal stats
-        stats = self.cache_manager.get_cache_stats()
-        self.assertFalse(stats["cache_info"]["exists"])
-        self.assertEqual(stats["cache_size_bytes"], 0)
+        # Save some data
+        self.cache_manager.save_to_cache(self.test_df, limit=3)
 
-        # Store data
-        self.cache_manager.cache_stories(self.test_data, limit, analysis_type)
+        # Check info with cached data
+        info = self.cache_manager.get_cache_info()
+        self.assertEqual(len(info['cache_entries']), 1)
 
-        # Should have meaningful stats
-        stats = self.cache_manager.get_cache_stats()
-        self.assertTrue(stats["cache_info"]["exists"])
-        self.assertGreater(stats["cache_size_bytes"], 0)
-        self.assertGreater(stats["cache_size_mb"], 0)
-        self.assertIn("cache_files", stats)
+        entry = info['cache_entries'][0]
+        self.assertEqual(entry['limit'], 3)
+        self.assertEqual(entry['stories_count'], 3)
+        self.assertTrue(entry['cache_valid'])
+        self.assertIsNotNone(entry['cache_age_hours'])
+        self.assertGreaterEqual(entry['cache_age_hours'], 0)
 
-    def test_force_refresh_needed(self):
-        """Test force refresh detection"""
-        limit = 30
+    def test_empty_dataframe_handling(self):
+        """Test handling of empty DataFrames."""
+        empty_df = pd.DataFrame()
 
-        # Initially should need refresh
-        self.assertTrue(self.cache_manager.force_refresh_needed(limit))
+        # Saving empty DataFrame should not create cache files
+        self.cache_manager.save_to_cache(empty_df, limit=0)
 
-        # Store data
-        self.cache_manager.cache_stories(self.test_data, limit, "basic")
+        # Get potential cache file paths
+        cache_key = self.cache_manager._generate_cache_key(0, "basic")
+        metadata_file, data_file = self.cache_manager._get_cache_files(cache_key)
 
-        # Should not need refresh with matching limit
-        self.assertFalse(self.cache_manager.force_refresh_needed(limit))
+        # Files should not exist
+        self.assertFalse(os.path.exists(metadata_file))
+        self.assertFalse(os.path.exists(data_file))
 
-        # Should need refresh with different limit
-        self.assertTrue(self.cache_manager.force_refresh_needed(limit + 10))
+    def test_cache_with_different_analysis_types(self):
+        """Test caching with different analysis types."""
+        # Save data with different analysis types
+        self.cache_manager.save_to_cache(self.test_df, limit=3, analysis_type="basic")
+        self.cache_manager.save_to_cache(self.test_df, limit=3, analysis_type="advanced")
 
-    def test_expiry_update(self):
-        """Test updating cache expiry time"""
-        # Default expiry should be 1 minute
-        self.assertEqual(self.cache_manager.expiry_minutes, 1)
+        # Each should be retrievable with its respective analysis type
+        basic_df = self.cache_manager.get_cached_data(limit=3, analysis_type="basic")
+        advanced_df = self.cache_manager.get_cached_data(limit=3, analysis_type="advanced")
 
-        # Update expiry time
-        self.cache_manager.update_expiry(5)
-        self.assertEqual(self.cache_manager.expiry_minutes, 5)
+        self.assertIsNotNone(basic_df)
+        self.assertIsNotNone(advanced_df)
+        self.assertEqual(len(basic_df), 3)
+        self.assertEqual(len(advanced_df), 3)
 
+    def test_error_handling(self):
+        """Test error handling in cache operations."""
+        # Test with read-only directory (simulate error condition)
+        readonly_dir = os.path.join(self.test_cache_dir, "readonly")
+        os.makedirs(readonly_dir, exist_ok=True)
 
-class TestCacheManagerGlobalFunctions(unittest.TestCase):
-    """Test global cache manager functions"""
+        # Save to normal cache first
+        self.cache_manager.save_to_cache(self.test_df, limit=3)
 
-    def setUp(self):
-        """Set up test environment"""
-        # Clear any existing cache
-        clear_cache()
+        # Try loading with non-existent parameters
+        loaded_df = self.cache_manager.get_cached_data(limit=999)  # Different limit
+        self.assertIsNone(loaded_df)
 
-    def test_get_cache_manager(self):
-        """Test global cache manager instance"""
-        manager1 = get_cache_manager()
-        manager2 = get_cache_manager()
+        # Get cache info should still work
+        info = self.cache_manager.get_cache_info()
+        self.assertIsInstance(info, dict)
 
-        # Should return same instance
-        self.assertIs(manager1, manager2)
-        self.assertIsInstance(manager1, CacheManager)
+    @patch('cache_manager.logger')
+    def test_logging(self, mock_logger):
+        """Test that appropriate logging occurs."""
+        # Test successful operations
+        self.cache_manager.save_to_cache(self.test_df, limit=3)
+        loaded_df = self.cache_manager.get_cached_data(limit=3)
 
-    def test_get_cache_statistics(self):
-        """Test global cache statistics"""
-        stats = get_cache_statistics()
-        self.assertIsInstance(stats, dict)
-        self.assertIn("cache_info", stats)
-        self.assertIn("cache_size_mb", stats)
+        # Check that info messages were logged
+        mock_logger.info.assert_called()
 
-    def test_clear_cache(self):
-        """Test global cache clearing"""
-        # Should not raise an exception
-        clear_cache()
-        stats = get_cache_statistics()
-        self.assertFalse(stats["cache_info"]["exists"])
+        # Test warning for empty DataFrame
+        empty_df = pd.DataFrame()
+        self.cache_manager.save_to_cache(empty_df, limit=0)
+
+        # Check that warning was logged
+        mock_logger.warning.assert_called_with("Attempted to cache empty DataFrame")
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # Create test results directory if it doesn't exist
+    test_results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'test_results')
+    os.makedirs(test_results_dir, exist_ok=True)
+
+    # Run tests with verbosity
+    unittest.main(verbosity=2)

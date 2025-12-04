@@ -1,210 +1,213 @@
 """
-Intelligent caching system for Tech-Pulse data.
-Reduces API calls and improves performance.
+Simple cache manager for Tech-Pulse application.
+Provides caching functionality for Hacker News stories.
 """
 
 import json
-import time
 import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-import pandas as pd
+import time
 import hashlib
+import pandas as pd
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+import logging
 
-# Cache configuration
-CACHE_DIR = "cache"
-CACHE_EXPIRY_MINUTES = 5  # Default cache expiry time
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def get_cache_files(cache_dir: str = CACHE_DIR) -> tuple:
-    """Get cache file paths for given directory"""
-    return (
-        os.path.join(cache_dir, "stories_cache.json"),
-        os.path.join(cache_dir, "stories_data.parquet")
-    )
 
 class CacheManager:
-    """Manages caching of Hacker News stories and analysis results."""
+    """Manages caching of Hacker News stories data."""
 
-    def __init__(self, cache_dir: str = CACHE_DIR, expiry_minutes: int = CACHE_EXPIRY_MINUTES):
+    def __init__(self, cache_dir: str = "cache", cache_duration_hours: int = 1):
+        """
+        Initialize cache manager.
+
+        Args:
+            cache_dir: Directory to store cache files
+            cache_duration_hours: How long cache entries remain valid
+        """
         self.cache_dir = cache_dir
-        self.expiry_minutes = expiry_minutes
-        self.ensure_cache_dir()
-        self.story_cache_file, self.story_data_file = get_cache_files(cache_dir)
+        self.cache_duration = timedelta(hours=cache_duration_hours)
 
-    def ensure_cache_dir(self):
-        """Ensure cache directory exists."""
-        os.makedirs(self.cache_dir, exist_ok=True)
+        # Ensure cache directory exists
+        os.makedirs(cache_dir, exist_ok=True)
 
-    def get_cache_key(self, limit: int, analysis_type: str = "basic") -> str:
-        """Generate cache key based on parameters."""
-        key_data = f"stories_{limit}_{analysis_type}"
+    def _get_cache_files(self, cache_key: str) -> tuple:
+        """
+        Get cache file paths for a given cache key.
+
+        Args:
+            cache_key: The cache key
+
+        Returns:
+            Tuple of (metadata_file_path, data_file_path)
+        """
+        base_filename = f"stories_{cache_key}"
+        metadata_file = os.path.join(self.cache_dir, f"{base_filename}.json")
+        data_file = os.path.join(self.cache_dir, f"{base_filename}.parquet")
+        return metadata_file, data_file
+
+    def _generate_cache_key(self, limit: int, analysis_type: str = "basic") -> str:
+        """
+        Generate a unique cache key based on parameters.
+
+        Args:
+            limit: Number of stories requested
+            analysis_type: Type of analysis performed
+
+        Returns:
+            MD5 hash as cache key
+        """
+        # Note: Remove date from cache key to allow same-day caching with different analysis types
+        key_data = f"{limit}_{analysis_type}"
         return hashlib.md5(key_data.encode()).hexdigest()
 
-    def is_cache_valid(self, cache_file: str) -> bool:
-        """Check if cache file exists and is not expired."""
-        if not os.path.exists(cache_file):
+    def _is_cache_valid(self, metadata: Dict[str, Any]) -> bool:
+        """
+        Check if cached data is still valid.
+
+        Args:
+            metadata: Cache metadata dictionary
+
+        Returns:
+            True if cache is valid, False otherwise
+        """
+        if not metadata:
             return False
 
-        file_time = datetime.fromtimestamp(os.path.getmtime(cache_file))
-        expiry_time = datetime.now() - timedelta(minutes=self.expiry_minutes)
+        cache_time = datetime.fromtimestamp(metadata.get('timestamp', 0))
+        return datetime.now() - cache_time < self.cache_duration
 
-        return file_time > expiry_time
+    def get_cached_data(self, limit: int, analysis_type: str = "basic") -> Optional[pd.DataFrame]:
+        """
+        Retrieve cached data if available and valid.
 
-    def get_story_cache_info(self) -> Dict[str, Any]:
-        """Get information about cached stories."""
-        if not os.path.exists(self.story_cache_file):
-            return {
-                "exists": False,
-                "stories_count": 0,
-                "last_updated": None,
-                "cache_age_minutes": None,
-                "is_valid": False,
-                "limit": 0
-            }
+        Args:
+            limit: Number of stories requested
+            analysis_type: Type of analysis performed
 
+        Returns:
+            Cached DataFrame or None if not available/invalid
+        """
         try:
-            with open(self.story_cache_file, 'r') as f:
-                cache_info = json.load(f)
+            # Generate cache key
+            cache_key = self._generate_cache_key(limit, analysis_type)
+            metadata_file, data_file = self._get_cache_files(cache_key)
 
-            cache_time = datetime.fromtimestamp(cache_info['timestamp'])
-            age_minutes = (datetime.now() - cache_time).total_seconds() / 60
-            is_valid = age_minutes < self.expiry_minutes
+            # Check if cache files exist
+            if not os.path.exists(metadata_file) or not os.path.exists(data_file):
+                logger.info("Cache files not found")
+                return None
 
-            return {
-                "exists": True,
-                "stories_count": cache_info.get('stories_count', 0),
-                "last_updated": cache_time,
-                "cache_age_minutes": round(age_minutes, 1),
-                "is_valid": is_valid,
-                "expiry_minutes": self.expiry_minutes,
-                "limit": cache_info.get('limit', 0)
-            }
-        except (json.JSONDecodeError, KeyError, FileNotFoundError):
-            return {
-                "exists": False,
-                "stories_count": 0,
-                "last_updated": None,
-                "cache_age_minutes": None,
-                "is_valid": False,
-                "limit": 0
-            }
+            # Load metadata
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
 
-    def cache_stories(self, df: pd.DataFrame, limit: int, analysis_type: str = "basic"):
-        """Cache stories dataframe to disk."""
-        cache_info = {
-            "timestamp": time.time(),
-            "limit": limit,
-            "analysis_type": analysis_type,
-            "stories_count": len(df),
-            "columns": list(df.columns),
-            "cache_key": self.get_cache_key(limit, analysis_type)
-        }
+            # Check if cache is valid
+            if not self._is_cache_valid(metadata):
+                logger.info("Cache has expired")
+                return None
 
-        # Save metadata
-        with open(self.story_cache_file, 'w') as f:
-            json.dump(cache_info, f, indent=2, default=str)
-
-        # Save actual data
-        df.to_parquet(self.story_data_file, index=False)
-
-    def load_cached_stories(self, limit: int, analysis_type: str = "basic") -> Optional[pd.DataFrame]:
-        """Load cached stories if valid."""
-        # Load cache metadata
-        if not os.path.exists(self.story_cache_file):
-            return None
-
-        with open(self.story_cache_file, 'r') as f:
-            cache_info = json.load(f)
-
-        # Check validity
-        cache_time = datetime.fromtimestamp(cache_info['timestamp'])
-        expiry_time = datetime.now() - timedelta(minutes=self.expiry_minutes)
-
-        if cache_time <= expiry_time:
-            return None
-
-        if cache_info.get("limit") != limit:
-            return None
-
-        if not os.path.exists(self.story_data_file):
-            return None
-
-        try:
-            df = pd.read_parquet(self.story_data_file)
+            # Load cached data
+            df = pd.read_parquet(data_file)
+            logger.info(f"Successfully loaded {len(df)} stories from cache")
             return df
+
         except Exception as e:
-            print(f"Error loading cached data: {e}")
+            logger.error(f"Error loading cache: {e}")
             return None
 
-    def clear_cache(self):
+    def save_to_cache(self, df: pd.DataFrame, limit: int, analysis_type: str = "basic") -> None:
+        """
+        Save data to cache.
+
+        Args:
+            df: DataFrame to cache
+            limit: Number of stories requested
+            analysis_type: Type of analysis performed
+        """
+        try:
+            if df.empty:
+                logger.warning("Attempted to cache empty DataFrame")
+                return
+
+            # Generate cache key and file paths
+            cache_key = self._generate_cache_key(limit, analysis_type)
+            metadata_file, data_file = self._get_cache_files(cache_key)
+
+            # Create metadata
+            metadata = {
+                'timestamp': time.time(),
+                'limit': limit,
+                'analysis_type': analysis_type,
+                'stories_count': len(df),
+                'columns': list(df.columns),
+                'cache_key': cache_key
+            }
+
+            # Save DataFrame
+            df.to_parquet(data_file, index=False)
+
+            # Save metadata
+            with open(metadata_file, 'w') as f:
+                json.dump(metadata, f, indent=2)
+
+            logger.info(f"Successfully cached {len(df)} stories")
+
+        except Exception as e:
+            logger.error(f"Error saving to cache: {e}")
+
+    def clear_cache(self) -> None:
         """Clear all cached data."""
-        files_to_remove = [self.story_cache_file, self.story_data_file]
-
-        for file_path in files_to_remove:
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except Exception as e:
-                    print(f"Error removing {file_path}: {e}")
-
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get comprehensive cache statistics."""
-        cache_info = self.get_story_cache_info()
-
-        # Get cache directory size
-        cache_size = 0
-        if os.path.exists(self.cache_dir):
+        try:
+            # Remove all cache files matching our pattern
             for filename in os.listdir(self.cache_dir):
-                file_path = os.path.join(self.cache_dir, filename)
-                if os.path.isfile(file_path):
-                    cache_size += os.path.getsize(file_path)
+                if filename.startswith("stories_") and (filename.endswith(".json") or filename.endswith(".parquet")):
+                    file_path = os.path.join(self.cache_dir, filename)
+                    os.remove(file_path)
+                    logger.info(f"Removed cache file: {filename}")
 
-        return {
-            "cache_info": cache_info,
-            "cache_directory": self.cache_dir,
-            "cache_size_bytes": cache_size,
-            "cache_size_mb": round(cache_size / (1024 * 1024), 2),
-            "expiry_minutes": self.expiry_minutes,
-            "cache_files": os.listdir(self.cache_dir) if os.path.exists(self.cache_dir) else []
+        except Exception as e:
+            logger.error(f"Error clearing cache: {e}")
+
+    def get_cache_info(self) -> Dict[str, Any]:
+        """
+        Get information about current cache state.
+
+        Returns:
+            Dictionary with cache information
+        """
+        info = {
+            'cache_dir': self.cache_dir,
+            'cache_duration_hours': self.cache_duration.total_seconds() / 3600,
+            'cache_entries': []
         }
 
-    def update_expiry(self, new_expiry_minutes: int):
-        """Update cache expiry time."""
-        self.expiry_minutes = new_expiry_minutes
+        try:
+            # Look for all cache files
+            for filename in os.listdir(self.cache_dir):
+                if filename.startswith("stories_") and filename.endswith(".json"):
+                    metadata_file = os.path.join(self.cache_dir, filename)
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
 
-    def force_refresh_needed(self, limit: int) -> bool:
-        """Check if a force refresh is needed."""
-        cache_info = self.get_story_cache_info()
+                    entry = {
+                        'limit': metadata.get('limit', 0),
+                        'analysis_type': metadata.get('analysis_type', 'unknown'),
+                        'stories_count': metadata.get('stories_count', 0),
+                        'cache_valid': self._is_cache_valid(metadata),
+                        'cache_age_hours': None,
+                        'cache_key': metadata.get('cache_key', 'unknown')
+                    }
 
-        if not cache_info["exists"]:
-            return True
+                    cache_time = datetime.fromtimestamp(metadata.get('timestamp', 0))
+                    entry['cache_age_hours'] = (datetime.now() - cache_time).total_seconds() / 3600
 
-        if not cache_info["is_valid"]:
-            return True
+                    info['cache_entries'].append(entry)
 
-        if cache_info["limit"] != limit:
-            return True
+        except Exception as e:
+            logger.error(f"Error getting cache info: {e}")
 
-        return False
-
-# Global cache manager instance
-_cache_manager = None
-
-def get_cache_manager() -> CacheManager:
-    """Get or create global cache manager instance."""
-    global _cache_manager
-    if _cache_manager is None:
-        _cache_manager = CacheManager()
-    return _cache_manager
-
-def clear_cache():
-    """Clear all cache."""
-    get_cache_manager().clear_cache()
-
-def get_cache_statistics() -> Dict[str, Any]:
-    """Get cache statistics."""
-    return get_cache_manager().get_cache_stats()
-
-def update_cache_expiry(minutes: int):
-    """Update cache expiry time."""
-    get_cache_manager().update_expiry(minutes)
+        return info

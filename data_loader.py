@@ -9,15 +9,15 @@ import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from bertopic import BERTopic
 
+# Cache imports
+from cache_manager import CacheManager
+
 # Download NLTK data if needed
 try:
     nltk.data.find('sentiment/vader_lexicon.zip')
 except LookupError:
     print("Downloading VADER lexicon for sentiment analysis...")
     nltk.download('vader_lexicon')
-
-# Caching imports
-from cache_manager import get_cache_manager, get_cache_statistics
 
 
 def fetch_story_ids(base_url: str = "https://hacker-news.firebaseio.com/v0") -> Optional[List[int]]:
@@ -233,14 +233,15 @@ def get_topics(df: pd.DataFrame, embedding_model: str = 'all-MiniLM-L6-v2') -> p
         return df
 
 
-def fetch_hn_data(limit: int = 30, use_cache: bool = True, force_refresh: bool = False) -> pd.DataFrame:
+def fetch_hn_data(limit: int = 30, use_cache: bool = True, cache_duration_hours: int = 1) -> pd.DataFrame:
     """
     Fetch top stories from Hacker News and return structured data.
+    Uses cache to avoid re-fetching the same data repeatedly.
 
     Args:
         limit: Number of stories to fetch (default: 30)
         use_cache: Whether to use cached data if available (default: True)
-        force_refresh: Force refresh even if cache is valid (default: False)
+        cache_duration_hours: How long cached data remains valid (default: 1)
 
     Returns:
         Pandas DataFrame containing story data with columns:
@@ -250,20 +251,18 @@ def fetch_hn_data(limit: int = 30, use_cache: bool = True, force_refresh: bool =
         - time (datetime): Story creation time
         - url (str): Link to the article
     """
-    cache_manager = get_cache_manager()
-    analysis_type = "basic"
+    # Initialize cache manager
+    cache_manager = CacheManager(cache_duration_hours=cache_duration_hours)
 
-    # Check if we can use cached data
-    if use_cache and not force_refresh:
-        cached_data = cache_manager.load_cached_stories(limit, analysis_type)
-        if cached_data is not None and not cached_data.empty:
-            cache_info = cache_manager.get_story_cache_info()
-            print(f"✅ Using cached data ({len(cached_data)} stories, {cache_info['cache_age_minutes']:.1f} minutes old)")
-            return cached_data
+    # Try to get data from cache first
+    if use_cache:
+        cached_df = cache_manager.get_cached_data(limit)
+        if cached_df is not None and not cached_df.empty:
+            print(f"Using cached data: {len(cached_df)} stories")
+            return cached_df
         else:
-            print("🔄 Cache expired or invalid, fetching fresh data...")
+            print("No valid cache found, fetching fresh data...")
 
-    # If we get here, we need to fetch fresh data
     base_url = "https://hacker-news.firebaseio.com/v0"
     stories_data = []
 
@@ -296,14 +295,14 @@ def fetch_hn_data(limit: int = 30, use_cache: bool = True, force_refresh: bool =
     df = process_stories_to_dataframe(stories_data)
 
     if not df.empty:
-        print(f"✅ Successfully fetched {len(df)} stories.")
+        print(f"Successfully fetched {len(df)} stories.")
 
-        # Cache the fresh data
+        # Save to cache for future use
         if use_cache:
-            cache_manager.cache_stories(df, limit, analysis_type)
-            print("💾 Data cached for future use")
+            cache_manager.save_to_cache(df, limit)
+            print("Data saved to cache")
     else:
-        print("❌ No stories were successfully fetched.")
+        print("No stories were successfully fetched.")
 
     return df
 
