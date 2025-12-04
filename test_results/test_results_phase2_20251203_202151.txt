@@ -1,0 +1,9 @@
+.................................
+----------------------------------------------------------------------
+Ran 33 tests in 0.011s
+
+OK
+Analyzing sentiment using VADER...
+Sentiment Analysis Results:
+  Positive: 2 stories (50.0%)
+  Neutral: 2 stories (50.0%)

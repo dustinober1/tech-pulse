@@ -4,6 +4,18 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import unittest.mock as mock
 
+# Analysis imports
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from bertopic import BERTopic
+
+# Download NLTK data if needed
+try:
+    nltk.data.find('sentiment/vader_lexicon.zip')
+except LookupError:
+    print("Downloading VADER lexicon for sentiment analysis...")
+    nltk.download('vader_lexicon')
+
 
 def fetch_story_ids(base_url: str = "https://hacker-news.firebaseio.com/v0") -> Optional[List[int]]:
     """
@@ -88,6 +100,136 @@ def process_stories_to_dataframe(stories_data: List[Dict]) -> pd.DataFrame:
     return df
 
 
+def analyze_sentiment(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Analyze sentiment of story titles using VADER.
+
+    Args:
+        df: DataFrame containing story data with 'title' column
+
+    Returns:
+        DataFrame with added sentiment_score and sentiment_label columns
+    """
+    if df.empty or 'title' not in df.columns:
+        print("Warning: DataFrame is empty or missing 'title' column")
+        return df
+
+    print("Analyzing sentiment using VADER...")
+
+    # Initialize the VADER sentiment analyzer
+    sia = SentimentIntensityAnalyzer()
+
+    # Apply sentiment analysis to the title column
+    sentiment_scores = []
+    for title in df['title']:
+        if pd.isna(title) or title == '':
+            sentiment_scores.append({'compound': 0.0})
+        else:
+            scores = sia.polarity_scores(str(title))
+            sentiment_scores.append(scores)
+
+    # Extract compound scores
+    df['sentiment_score'] = [score['compound'] for score in sentiment_scores]
+
+    # Create sentiment labels based on compound score
+    df['sentiment_label'] = df['sentiment_score'].apply(
+        lambda score: 'Positive' if score > 0.05
+                     else 'Negative' if score < -0.05
+                     else 'Neutral'
+    )
+
+    # Print sentiment summary
+    sentiment_counts = df['sentiment_label'].value_counts()
+    print(f"Sentiment Analysis Results:")
+    for label, count in sentiment_counts.items():
+        percentage = (count / len(df)) * 100
+        print(f"  {label}: {count} stories ({percentage:.1f}%)")
+
+    return df
+
+
+def get_topics(df: pd.DataFrame, embedding_model: str = 'all-MiniLM-L6-v2') -> pd.DataFrame:
+    """
+    Extract topics from story titles using BERTopic.
+
+    Args:
+        df: DataFrame containing story data with 'title' column
+        embedding_model: Name of the sentence transformer model to use
+
+    Returns:
+        DataFrame with added topic_id and topic_keyword columns
+    """
+    if df.empty or 'title' not in df.columns:
+        print("Warning: DataFrame is empty or missing 'title' column")
+        return df
+
+    print("Extracting topics using BERTopic...")
+
+    # Filter out empty or NaN titles
+    valid_titles = df['title'].dropna().astype(str).tolist()
+    valid_indices = df.index[df['title'].notna()].tolist()
+
+    if len(valid_titles) < 2:
+        print("Warning: Need at least 2 valid titles for topic modeling")
+        df['topic_id'] = -1
+        df['topic_keyword'] = 'Insufficient Data'
+        return df
+
+    try:
+        # Initialize BERTopic model
+        topic_model = BERTopic(
+            embedding_model=embedding_model,
+            min_topic_size=2,
+            verbose=True
+        )
+
+        # Fit the model and transform the documents
+        topics, probs = topic_model.fit_transform(valid_titles)
+
+        # Get topic info for keywords
+        topic_info = topic_model.get_topic_info()
+
+        # Create a mapping from topic ID to keywords
+        topic_keywords = {}
+        for _, row in topic_info.iterrows():
+            if row['Topic'] == -1:
+                topic_keywords[row['Topic']] = 'Outlier/No Topic'
+            else:
+                # Extract top keywords (join with underscores)
+                keywords = '_'.join(row['Representation'][:3])
+                topic_keywords[row['Topic']] = keywords
+
+        # Add topic information to DataFrame
+        df['topic_id'] = -1
+        df['topic_keyword'] = 'No Data'
+
+        for idx, topic_id in zip(valid_indices, topics):
+            df.at[idx, 'topic_id'] = topic_id
+            df.at[idx, 'topic_keyword'] = topic_keywords.get(topic_id, f'Topic_{topic_id}')
+
+        # Print topic summary
+        topic_counts = df['topic_id'].value_counts()
+        print(f"\nTopic Modeling Results:")
+        print(f"  Total Topics Found: {len(topic_counts) - 1 if -1 in topic_counts else len(topic_counts)}")
+
+        # Show top topics
+        for topic_id, count in topic_counts.head(5).items():
+            if topic_id == -1:
+                print(f"  Outliers: {count} stories")
+            else:
+                keyword = topic_keywords.get(topic_id, f'Topic_{topic_id}')
+                percentage = (count / len(df)) * 100
+                print(f"  Topic {topic_id} ({keyword}): {count} stories ({percentage:.1f}%)")
+
+        return df
+
+    except Exception as e:
+        print(f"Error in topic modeling: {e}")
+        df['topic_id'] = -1
+        df['topic_keyword'] = 'Error'
+        return df
+
+
 def fetch_hn_data(limit: int = 30) -> pd.DataFrame:
     """
     Fetch top stories from Hacker News and return structured data.
@@ -143,7 +285,33 @@ def fetch_hn_data(limit: int = 30) -> pd.DataFrame:
 
 
 if __name__ == '__main__':
-    print('Fetching data...')
-    df = fetch_hn_data(limit=5)
-    print(df.head())
-    print(f'Successfully fetched {len(df)} stories.')
+    print('1. Fetching data...')
+    df = fetch_hn_data(limit=20)  # Fetch 20 for a good sample
+
+    print('\n2. Analyzing Sentiment...')
+    df = analyze_sentiment(df)
+
+    print('\n3. Extracting Topics...')
+    df = get_topics(df)
+
+    print('\nTop 5 Rows with Analysis:')
+    # Display relevant columns
+    display_columns = ['title', 'sentiment_label', 'topic_keyword', 'score']
+
+    # Make sure all columns exist before selecting
+    available_columns = [col for col in display_columns if col in df.columns]
+    if available_columns:
+        print(df[available_columns].head())
+    else:
+        print(df.head())
+
+    print(f'\nSuccessfully analyzed {len(df)} stories with sentiment and topics.')
+
+    # Show summary statistics
+    if 'sentiment_label' in df.columns:
+        print(f"\nSentiment Distribution:")
+        print(df['sentiment_label'].value_counts())
+
+    if 'topic_keyword' in df.columns:
+        print(f"\nTop Topics:")
+        print(df['topic_keyword'].value_counts().head(10))
