@@ -1,0 +1,7 @@
+- Use test driven development
+- allways commit and push after every task
+- use muliple agents when possible
+- use available mcp servers to assist
+- update this claude.md file with any new rules or obstacles you discover
+- ignore reading the venv/ folder
+- all functions must have a unit test file 
