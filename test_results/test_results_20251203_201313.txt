@@ -1,0 +1,75 @@
+================================================================================
+TECH-PULSE DATA LOADER TEST RESULTS
+================================================================================
+Test Run Date: 2025-12-03 20:13:13
+Tests Run: 22
+Failures: 0
+Errors: 0
+Skipped: 0
+Success Rate: 100.0%
+
+OVERALL RESULT: ✓ ALL TESTS PASSED
+
+STANDARD OUTPUT:
+----------------------------------------
+test_extract_story_data_complete (test_data_loader.TestExtractStoryData.test_extract_story_data_complete)
+Test extraction with complete story data ... ok
+test_extract_story_data_empty_dict (test_data_loader.TestExtractStoryData.test_extract_story_data_empty_dict)
+Test extraction with empty dictionary ... ok
+test_extract_story_data_minimal (test_data_loader.TestExtractStoryData.test_extract_story_data_minimal)
+Test extraction with minimal story data ... ok
+test_extract_story_data_missing_optional_fields (test_data_loader.TestExtractStoryData.test_extract_story_data_missing_optional_fields)
+Test extraction with missing optional fields ... ok
+test_extract_story_data_no_title (test_data_loader.TestExtractStoryData.test_extract_story_data_no_title)
+Test extraction with missing title ... ok
+test_extract_story_data_none_input (test_data_loader.TestExtractStoryData.test_extract_story_data_none_input)
+Test extraction with None input ... ok
+test_fetch_hn_data_custom_limit (test_data_loader.TestFetchHnData.test_fetch_hn_data_custom_limit)
+Test fetching with custom limit ... ok
+test_fetch_hn_data_ids_fetch_fails (test_data_loader.TestFetchHnData.test_fetch_hn_data_ids_fetch_fails)
+Test when initial ID fetch fails ... ok
+test_fetch_hn_data_skip_invalid_stories (test_data_loader.TestFetchHnData.test_fetch_hn_data_skip_invalid_stories)
+Test skipping stories without titles ... ok
+test_fetch_hn_data_story_details_fails (test_data_loader.TestFetchHnData.test_fetch_hn_data_story_details_fails)
+Test when individual story detail fetch fails ... ok
+test_fetch_hn_data_success (test_data_loader.TestFetchHnData.test_fetch_hn_data_success)
+Test successful fetch of HN data ... ok
+test_fetch_story_details_custom_url (test_data_loader.TestFetchStoryDetails.test_fetch_story_details_custom_url)
+Test fetching from custom base URL ... ok
+test_fetch_story_details_not_found (test_data_loader.TestFetchStoryDetails.test_fetch_story_details_not_found)
+Test handling of 404 errors ... ok
+test_fetch_story_details_success (test_data_loader.TestFetchStoryDetails.test_fetch_story_details_success)
+Test successful fetch of story details ... ok
+test_fetch_story_ids_connection_error (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_connection_error)
+Test handling of connection errors ... ok
+test_fetch_story_ids_custom_url (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_custom_url)
+Test fetching from custom base URL ... ok
+test_fetch_story_ids_json_error (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_json_error)
+Test handling of JSON decoding errors ... ok
+test_fetch_story_ids_success (test_data_loader.TestFetchStoryIds.test_fetch_story_ids_success)
+Test successful fetch of story IDs ... ok
+test_process_stories_to_dataframe_empty (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_empty)
+Test processing empty stories list ... ok
+test_process_stories_to_dataframe_none (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_none)
+Test processing None input ... ok
+test_process_stories_to_dataframe_single_story (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_single_story)
+Test processing single story ... ok
+test_process_stories_to_dataframe_success (test_data_loader.TestProcessStoriesToDataframe.test_process_stories_to_dataframe_success)
+Test processing valid stories list ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.010s
+
+OK
+
+----------------------------------------
+
+TEST SUMMARY BY CLASS:
+----------------------------------------
+✓ TestExtractStoryData: 6/6 passed
+✓ TestFetchHnData: 5/5 passed
+✓ TestFetchStoryDetails: 3/3 passed
+✓ TestFetchStoryIds: 4/4 passed
+✓ TestProcessStoriesToDataframe: 4/4 passed
+
+================================================================================

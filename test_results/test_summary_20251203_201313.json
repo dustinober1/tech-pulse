@@ -1,0 +1,30 @@
+{
+  "timestamp": "2025-12-03T20:13:13.768306",
+  "tests_run": 22,
+  "failures": 0,
+  "errors": 0,
+  "success_rate": 100.0,
+  "was_successful": true,
+  "test_classes": {
+    "TestFetchStoryIds": {
+      "passed": 4,
+      "failed": 0
+    },
+    "TestFetchStoryDetails": {
+      "passed": 3,
+      "failed": 0
+    },
+    "TestExtractStoryData": {
+      "passed": 6,
+      "failed": 0
+    },
+    "TestProcessStoriesToDataframe": {
+      "passed": 4,
+      "failed": 0
+    },
+    "TestFetchHnData": {
+      "passed": 5,
+      "failed": 0
+    }
+  }
+}
