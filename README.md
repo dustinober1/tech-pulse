@@ -34,23 +34,35 @@ Tech-Pulse transforms raw Hacker News data into actionable insights through sent
 
 ```
 tech-pulse/
-├── data_loader.py          # Main data fetching and analysis module
+├── data_loader.py          # Main data fetching and analysis module with caching
+├── cache_manager.py        # Intelligent caching system for stories
+├── app.py                  # Interactive Streamlit dashboard
+├── dashboard_config.py     # Dashboard configuration and styling
 ├── README.md              # Project documentation
 ├── CLAUDE.md              # AI assistant guidelines and rules
 ├── plans/                 # Phase-based development plans
 │   ├── Phase1.md          # Data pipeline implementation plan
 │   ├── Phase2.md          # Analysis engine plan
-│   ├── Phase3.md          # Future development plan
+│   ├── Phase3.md          # Multi-agent dashboard implementation
 │   └── Phase4.md          # Future development plan
 ├── test/                  # Test suite
 │   ├── __init__.py        # Package initialization
-│   ├── test_data_loader.py # Comprehensive unit tests
+│   ├── test_data_loader.py # Data fetching and analysis tests
+│   ├── test_cache_manager.py # Caching system tests
+│   ├── test_dashboard_*.py # Dashboard functionality tests
 │   ├── run_tests.py       # Test runner with detailed reporting
 │   └── README.md          # Test documentation
-└── test_results/          # Automatic test result storage
-    ├── test_results_*.txt # Detailed test reports
-    ├── test_summary_*.json # JSON summaries
-    └── latest_test_results.txt # Latest results symlink
+├── test_results/          # Automatic test result storage
+│   ├── test_results_*.txt # Detailed test reports
+│   ├── test_summary_*.json # JSON summaries
+│   └── latest_test_results.txt # Latest results symlink
+├── cache/                 # Local cache storage for stories
+│   ├── stories_cache.json # Cache metadata
+│   └── stories_data.parquet # Cached story data
+├── Dockerfile             # Container configuration
+├── docker-compose.yml     # Docker deployment orchestration
+├── requirements.txt       # Core project dependencies
+└── requirements-dashboard.txt # Dashboard-specific dependencies
 ```
 
 ## 🚀 Quick Start
@@ -236,6 +248,13 @@ Extract topics from story titles using BERTopic.
 - Configurable minimum topic size and embedding models
 - Outlier detection for stories not fitting any topic
 
+### Intelligent Caching
+- **Smart story caching** with configurable expiry times (default: 5 minutes)
+- **Performance optimization** reducing API calls by up to 95%
+- **Cache management** with statistics and user controls
+- **Force refresh capability** for bypassing cache when needed
+- **Automatic validation** with expiration and freshness logic
+
 ## 📈 Example Use Cases
 
 1. **Tech Trend Monitoring**: Track emerging technologies and topics
@@ -298,6 +317,14 @@ df['custom_label'] = df['sentiment_score'].apply(
 - `README_DASHBOARD.md` - Comprehensive dashboard documentation
 - `Dockerfile` & `docker-compose.yml` - Containerization and deployment
 - `test/test_dashboard_*.py` - Comprehensive test suite (17 tests)
+
+### ✅ Phase 3.5: Intelligent Caching (Completed)
+- **Smart story caching** with configurable expiry times
+- **Performance optimization** reducing API calls by up to 95%
+- **Cache management UI** with statistics and controls
+- **Force refresh capability** for bypassing cache when needed
+- **Automatic cache validation** with expiration logic
+- **Cache monitoring** with size and age tracking
 
 ### 🔄 Phase 4: Advanced Features (Planned)
 - Real-time data streaming

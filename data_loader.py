@@ -16,6 +16,9 @@ except LookupError:
     print("Downloading VADER lexicon for sentiment analysis...")
     nltk.download('vader_lexicon')
 
+# Caching imports
+from cache_manager import get_cache_manager, get_cache_statistics
+
 
 def fetch_story_ids(base_url: str = "https://hacker-news.firebaseio.com/v0") -> Optional[List[int]]:
     """
@@ -230,12 +233,14 @@ def get_topics(df: pd.DataFrame, embedding_model: str = 'all-MiniLM-L6-v2') -> p
         return df
 
 
-def fetch_hn_data(limit: int = 30) -> pd.DataFrame:
+def fetch_hn_data(limit: int = 30, use_cache: bool = True, force_refresh: bool = False) -> pd.DataFrame:
     """
     Fetch top stories from Hacker News and return structured data.
 
     Args:
         limit: Number of stories to fetch (default: 30)
+        use_cache: Whether to use cached data if available (default: True)
+        force_refresh: Force refresh even if cache is valid (default: False)
 
     Returns:
         Pandas DataFrame containing story data with columns:
@@ -245,6 +250,20 @@ def fetch_hn_data(limit: int = 30) -> pd.DataFrame:
         - time (datetime): Story creation time
         - url (str): Link to the article
     """
+    cache_manager = get_cache_manager()
+    analysis_type = "basic"
+
+    # Check if we can use cached data
+    if use_cache and not force_refresh:
+        cached_data = cache_manager.load_cached_stories(limit, analysis_type)
+        if cached_data is not None and not cached_data.empty:
+            cache_info = cache_manager.get_story_cache_info()
+            print(f"✅ Using cached data ({len(cached_data)} stories, {cache_info['cache_age_minutes']:.1f} minutes old)")
+            return cached_data
+        else:
+            print("🔄 Cache expired or invalid, fetching fresh data...")
+
+    # If we get here, we need to fetch fresh data
     base_url = "https://hacker-news.firebaseio.com/v0"
     stories_data = []
 
@@ -277,9 +296,14 @@ def fetch_hn_data(limit: int = 30) -> pd.DataFrame:
     df = process_stories_to_dataframe(stories_data)
 
     if not df.empty:
-        print(f"Successfully fetched {len(df)} stories.")
+        print(f"✅ Successfully fetched {len(df)} stories.")
+
+        # Cache the fresh data
+        if use_cache:
+            cache_manager.cache_stories(df, limit, analysis_type)
+            print("💾 Data cached for future use")
     else:
-        print("No stories were successfully fetched.")
+        print("❌ No stories were successfully fetched.")
 
     return df
 

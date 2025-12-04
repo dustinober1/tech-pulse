@@ -12,6 +12,7 @@ import time
 
 # Import our custom modules
 from data_loader import fetch_hn_data, analyze_sentiment, get_topics
+from cache_manager import get_cache_manager, get_cache_statistics, clear_cache
 from dashboard_config import (
     PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS,
     CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES
@@ -68,9 +69,14 @@ def create_sidebar():
 
         st.markdown("---")
 
-        # Refresh button
-        if st.button("🔄 Refresh Data", type="primary", use_container_width=True):
-            refresh_data()
+        # Refresh controls
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Refresh Data", type="primary", use_container_width=True):
+                refresh_data()
+        with col2:
+            if st.button("🔄 Force Refresh", help="Ignore cache and fetch fresh data"):
+                refresh_data(force_refresh=True)
 
         # Auto-refresh option
         auto_refresh = st.checkbox(
@@ -99,6 +105,39 @@ def create_sidebar():
             )
         else:
             st.info("Load data first to enable filters")
+
+        st.markdown("---")
+
+        # Cache management
+        st.markdown("### 💾 Cache Management")
+
+        # Display cache statistics
+        cache_stats = get_cache_statistics()
+        cache_info = cache_stats['cache_info']
+
+        if cache_info['exists']:
+            # Cache status indicator
+            if cache_info['is_valid']:
+                st.success(f"✅ Cache Valid ({cache_info['cache_age_minutes']:.1f} min old)")
+            else:
+                st.warning(f"⚠️ Cache Expired ({cache_info['cache_age_minutes']:.1f} min old)")
+
+            # Cache info
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Stories Cached", cache_info['stories_count'])
+            with col2:
+                st.metric("Cache Size", f"{cache_stats['cache_size_mb']:.2f} MB")
+            with col3:
+                st.metric("Expiry", f"{cache_info['expiry_minutes']} min")
+
+            # Clear cache button
+            if st.button("🗑️ Clear Cache", help="Delete all cached data"):
+                clear_cache()
+                st.success("Cache cleared!")
+                st.rerun()
+        else:
+            st.info("📭 No cached data available")
 
         st.markdown("---")
 
@@ -276,13 +315,18 @@ def create_data_table(df):
         else:
             st.dataframe(df)
 
-def refresh_data():
+def refresh_data(force_refresh: bool = False):
     """Refresh data from Hacker News"""
     try:
         # Show loading spinner
-        with st.spinner(LOADING_MESSAGES['fetching']):
-            # Fetch data
-            df = fetch_hn_data(limit=st.session_state.stories_count)
+        action_msg = "force refreshing" if force_refresh else "refreshing"
+        with st.spinner(f"{LOADING_MESSAGES['fetching']} ({action_msg})"):
+            # Fetch data with caching support
+            df = fetch_hn_data(
+                limit=st.session_state.stories_count,
+                use_cache=not force_refresh,
+                force_refresh=force_refresh
+            )
 
             if df.empty:
                 st.error(ERROR_MESSAGES['no_data'])
@@ -300,7 +344,10 @@ def refresh_data():
         st.session_state.last_refresh = datetime.now()
 
         # Show success message
-        st.success(SUCCESS_MESSAGES['data_loaded'])
+        if force_refresh:
+            st.success("✅ Force refresh complete! Fresh data loaded.")
+        else:
+            st.success(SUCCESS_MESSAGES['data_loaded'])
 
     except Exception as e:
         st.error(f"Error refreshing data: {str(e)}")
