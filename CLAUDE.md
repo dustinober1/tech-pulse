@@ -5,3 +5,5 @@
 - update this claude.md file with any new rules or obstacles you discover
 - ignore reading the venv/ folder
 - all functions must have a unit test file 
+- All test will be in the test/ folder
+- All test results will be in the test_results/ folder
