@@ -272,7 +272,7 @@ def create_data_table(df):
                     axis=1
                 )
 
-            st.markdown(display_df.to_markdown(index=False))
+            st.dataframe(display_df, use_container_width=True)
         else:
             st.dataframe(df)
 
