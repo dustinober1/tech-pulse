@@ -462,8 +462,9 @@ class TestVectorSearchManagerIntegration(unittest.TestCase):
     def test_embedding_generation(self, mock_sentence_transformer):
         """Test embedding generation with batch processing"""
         # Mock model
+        import numpy as np
         mock_model = Mock()
-        mock_embeddings = [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]
+        mock_embeddings = np.array([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]])
         mock_model.encode.return_value = mock_embeddings
         mock_sentence_transformer.return_value = mock_model
 
