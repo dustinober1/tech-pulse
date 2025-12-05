@@ -70,6 +70,7 @@ mock_streamlit.empty = Mock(return_value=create_context_manager_mock())
 mock_streamlit.caption = Mock()
 mock_streamlit.container = Mock(return_value=create_context_manager_mock())
 mock_streamlit.metric = Mock()
+mock_streamlit.toggle = Mock(return_value=False)
 
 sys.modules['streamlit'] = mock_streamlit
 
@@ -292,15 +293,17 @@ class TestModeSwitching(unittest.TestCase):
 
             # First call - enable real-time
             app.create_sidebar()
-            self.assertTrue(app.st.session_state.auto_refresh)
+            self.assertTrue(app.st.session_state.real_time_mode)
 
             # Second call - disable real-time
+            mock_sidebar.checkbox.side_effect = [False]
             app.create_sidebar()
-            self.assertFalse(app.st.session_state.auto_refresh)
+            self.assertFalse(app.st.session_state.real_time_mode)
 
             # Third call - re-enable real-time
+            mock_sidebar.checkbox.side_effect = [True]
             app.create_sidebar()
-            self.assertTrue(app.st.session_state.auto_refresh)
+            self.assertTrue(app.st.session_state.real_time_mode)
 
 
 class TestRealtimeErrorHandling(unittest.TestCase):
@@ -330,7 +333,7 @@ class TestRealtimeErrorHandling(unittest.TestCase):
         with patch('app.fetch_hn_data', side_effect=simulate_error_then_success):
             # Simulate two iterations
             for i in range(2):
-                with placeholder := mock_empty():
+                with mock_empty() as placeholder:
                     try:
                         with placeholder.container():
                             with patch('app.st.spinner'):

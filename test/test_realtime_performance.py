@@ -8,8 +8,12 @@ import sys
 import os
 import time
 import threading
-import psutil
 import gc
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
 
@@ -71,6 +75,7 @@ mock_streamlit.session_state = MockSessionState()
 mock_streamlit.empty = Mock(return_value=create_context_manager_mock())
 mock_streamlit.caption = Mock()
 mock_streamlit.container = Mock(return_value=create_context_manager_mock())
+mock_streamlit.toggle = Mock(return_value=False)
 
 sys.modules['streamlit'] = mock_streamlit
 
@@ -91,12 +96,15 @@ class TestMemoryUsage(unittest.TestCase):
 
     def get_memory_usage(self):
         """Get current memory usage in MB"""
+        if not HAS_PSUTIL:
+            return 0  # Fallback if psutil not available
         try:
             process = psutil.Process(os.getpid())
             return process.memory_info().rss / 1024 / 1024
         except:
-            return 0  # Fallback if psutil not available
+            return 0
 
+    @unittest.skipIf(not HAS_PSUTIL, "psutil not available")
     @patch('time.sleep')
     @patch('app.st.empty')
     def test_memory_usage_stable_during_realtime(self, mock_empty, mock_sleep):
@@ -146,6 +154,7 @@ class TestMemoryUsage(unittest.TestCase):
             self.assertLess(memory_increase, 50,
                            f"Memory increased by {memory_increase:.2f}MB, which exceeds threshold")
 
+    @unittest.skipIf(not HAS_PSUTIL, "psutil not available")
     def test_memory_cleanup_after_mode_switch(self):
         """Test memory cleanup when switching between modes"""
         # Accumulate data in real-time mode
@@ -172,6 +181,7 @@ class TestMemoryUsage(unittest.TestCase):
         self.assertGreater(memory_freed, 0,
                           "Memory usage should decrease after data cleanup")
 
+    @unittest.skipIf(not HAS_PSUTIL, "psutil not available")
     @patch('time.sleep')
     def test_dataframe_memory_management(self, mock_sleep):
         """Test efficient DataFrame memory management"""
@@ -195,6 +205,7 @@ class TestMemoryUsage(unittest.TestCase):
         # Verify memory is managed
         self.assertLessEqual(len(dataframes), 5, "Should not accumulate too many DataFrames")
 
+    @unittest.skipIf(not HAS_PSUTIL, "psutil not available")
     def test_large_dataset_handling(self):
         """Test memory handling with large datasets"""
         # Create a large dataset
@@ -419,6 +430,7 @@ class TestBrowserBehavior(unittest.TestCase):
                         # Subsequent attempts should succeed
                         self.fail(f"Unexpected error after reconnection: {e}")
 
+    @unittest.skipIf(not HAS_PSUTIL, "psutil not available")
     def test_memory_cleanup_on_tab_close(self):
         """Test memory cleanup when tab is closed"""
         # Simulate tab accumulating data

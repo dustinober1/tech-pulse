@@ -14,7 +14,8 @@ import time
 from data_loader import fetch_hn_data, analyze_sentiment, get_topics
 from dashboard_config import (
     PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS,
-    CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES
+    CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES,
+    REAL_TIME_SETTINGS
 )
 
 # Configure page
@@ -361,6 +362,51 @@ def check_auto_refresh():
         if time_since_refresh >= 60:
             refresh_data()
 
+def display_timestamp():
+    """Display current timestamp in top-right corner"""
+    current_time = datetime.now().strftime('%H:%M:%S')
+    st.caption(f"Last Update: {current_time}")
+
+def create_realtime_display():
+    """Create the main content area for real-time display"""
+    # Initialize placeholder for dynamic content updates
+    placeholder = st.empty()
+
+    return placeholder
+
+def create_content_in_placeholder(placeholder):
+    """Create and render all content within the placeholder container"""
+    with placeholder.container():
+        # Display timestamp in top-right
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col3:
+            display_timestamp()
+
+        # Main content area
+        if st.session_state.data is not None:
+            # Create metrics row
+            create_metrics_row(st.session_state.data)
+
+            st.markdown("---")
+
+            # Create charts row
+            create_charts_row(st.session_state.data)
+
+            st.markdown("---")
+
+            # Create data table
+            create_data_table(st.session_state.data)
+        else:
+            # Initial load prompt
+            st.markdown("""
+            <div style='text-align: center; padding: 3rem;'>
+                <h2 style='color: #7F8C8D;'>Welcome to Tech-Pulse Dashboard! 🚀</h2>
+                <p style='color: #BDC3C7; font-size: 1.1rem; margin: 1rem 0;'>
+                    Loading real-time data from Hacker News...
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
 def main():
     """Main dashboard function"""
     # Initialize session state
@@ -372,38 +418,74 @@ def main():
     # Create sidebar
     create_sidebar()
 
-    # Check auto-refresh
-    check_auto_refresh()
+    # Check if real-time mode is enabled
+    if st.session_state.real_time_mode:
+        # Create placeholder for real-time content
+        placeholder = create_realtime_display()
 
-    # Main content area
-    if st.session_state.data is not None:
-        # Create metrics row
-        create_metrics_row(st.session_state.data)
+        # Real-time loop
+        while True:
+            try:
+                # Check if we need to refresh data
+                if st.session_state.last_update_time is None:
+                    # First time load
+                    refresh_data()
+                else:
+                    # Check if 60 seconds have passed
+                    time_since_refresh = (datetime.now() - st.session_state.last_update_time).seconds
+                    if time_since_refresh >= REAL_TIME_SETTINGS['refresh_interval']:
+                        refresh_data()
 
-        st.markdown("---")
+                # Update content display
+                create_content_in_placeholder(placeholder)
 
-        # Create charts row
-        create_charts_row(st.session_state.data)
+                # Sleep for 60 seconds before next update
+                time.sleep(REAL_TIME_SETTINGS['refresh_interval'])
 
-        st.markdown("---")
-
-        # Create data table
-        create_data_table(st.session_state.data)
-
+            except Exception as e:
+                # Handle exceptions gracefully without breaking the loop
+                st.error(f"Real-time update error: {str(e)}")
+                # Continue the loop after a short delay
+                time.sleep(REAL_TIME_SETTINGS['retry_delay'])
     else:
-        # Initial load prompt
-        st.markdown("""
-        <div style='text-align: center; padding: 3rem;'>
-            <h2 style='color: #7F8C8D;'>Welcome to Tech-Pulse Dashboard! 🚀</h2>
-            <p style='color: #BDC3C7; font-size: 1.1rem; margin: 1rem 0;'>
-                Click the "🔄 Refresh Data" button in the sidebar to start analyzing trending tech stories from Hacker News.
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Manual mode - display timestamp and content once
+        # Display timestamp in top-right
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col3:
+            display_timestamp()
 
-        # Auto-refresh on first load
-        if st.session_state.last_refresh is None:
-            refresh_data()
+        # Check auto-refresh
+        check_auto_refresh()
+
+        # Main content area
+        if st.session_state.data is not None:
+            # Create metrics row
+            create_metrics_row(st.session_state.data)
+
+            st.markdown("---")
+
+            # Create charts row
+            create_charts_row(st.session_state.data)
+
+            st.markdown("---")
+
+            # Create data table
+            create_data_table(st.session_state.data)
+
+        else:
+            # Initial load prompt
+            st.markdown("""
+            <div style='text-align: center; padding: 3rem;'>
+                <h2 style='color: #7F8C8D;'>Welcome to Tech-Pulse Dashboard! 🚀</h2>
+                <p style='color: #BDC3C7; font-size: 1.1rem; margin: 1rem 0;'>
+                    Click the "🔄 Refresh Data" button in the sidebar to start analyzing trending tech stories from Hacker News.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Auto-refresh on first load
+            if st.session_state.last_refresh is None:
+                refresh_data()
 
 if __name__ == "__main__":
     main()
