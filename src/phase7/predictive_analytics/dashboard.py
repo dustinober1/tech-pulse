@@ -264,10 +264,42 @@ class PredictiveDashboard:
             self._show_model_comparison(selected_tech)
 
     def _get_available_technologies(self) -> List[str]:
-        """Get list of technologies with data."""
-        # Return fallback technologies since data_loader doesn't exist
-        # Could be enhanced later to query actual database
-        return ['Python', 'JavaScript', 'Java', 'TypeScript', 'Go', 'Rust', 'React', 'Node.js', 'Docker', 'Kubernetes']
+        """
+        Get list of available technologies for analysis.
+
+        Returns:
+            List[str]: List of technology names
+        """
+        try:
+            # Use cached stories or fetch from session state
+            if 'stories' in st.session_state and st.session_state.stories:
+                # Extract technologies from current stories
+                technologies = set()
+                for story in st.session_state.stories:
+                    # Extract from title and summary
+                    text = f"{story.get('title', '')} {story.get('summary', '')}".lower()
+
+                    # Common tech keywords (can be expanded)
+                    tech_keywords = [
+                        'ai', 'ml', 'python', 'javascript', 'react', 'node.js',
+                        'docker', 'kubernetes', 'aws', 'azure', 'gcp',
+                        'tensorflow', 'pytorch', 'blockchain', 'web3',
+                        'microservices', 'serverless', 'devops', 'cicd'
+                    ]
+
+                    for tech in tech_keywords:
+                        if tech in text:
+                            technologies.add(tech)
+
+                return sorted(list(technologies))
+            else:
+                # Return default technologies
+                return ['AI', 'Machine Learning', 'Python', 'JavaScript', 'React',
+                       'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP']
+
+        except Exception as e:
+            self.logger.error(f"Error getting technologies: {str(e)}")
+            return ['AI', 'Machine Learning', 'Python']  # Minimal fallback
 
     def _get_current_features(self, technology: str) -> Optional[Dict[str, float]]:
         """Get current features for a technology."""
@@ -305,6 +337,58 @@ class PredictiveDashboard:
             logger.error(f"Failed to get features for {technology}: {str(e)}")
 
         return None
+
+    def _get_technology_trend_data(self, technology: str, days: int = 30) -> Dict:
+        """
+        Get trend data for a specific technology.
+
+        Args:
+            technology: Technology name to analyze
+            days: Number of days to look back
+
+        Returns:
+            Dict with trend data
+        """
+        try:
+            # Use session state data
+            if 'stories' in st.session_state and st.session_state.stories:
+                # Filter stories containing the technology
+                tech_stories = [
+                    story for story in st.session_state.stories
+                    if technology.lower() in f"{story.get('title', '')} {story.get('summary', '')}".lower()
+                ]
+
+                # Group by date
+                from datetime import datetime, timedelta
+                trend_data = {}
+
+                for i in range(days):
+                    date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                    trend_data[date] = 0
+
+                # Count mentions per date
+                for story in tech_stories:
+                    story_date = story.get('published_at', datetime.now().strftime('%Y-%m-%d'))
+                    if story_date in trend_data:
+                        trend_data[story_date] += 1
+
+                return {
+                    'dates': list(reversed(trend_data.keys())),
+                    'counts': list(reversed(trend_data.values())),
+                    'total_mentions': sum(trend_data.values())
+                }
+            else:
+                # Return empty trend
+                return {
+                    'dates': [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                             for i in range(30, 0, -1)],
+                    'counts': [0] * 30,
+                    'total_mentions': 0
+                }
+
+        except Exception as e:
+            self.logger.error(f"Error getting trend data: {str(e)}")
+            return {'dates': [], 'counts': [], 'total_mentions': 0}
 
     def _display_prediction(self, prediction: PredictionResult, threshold: float):
         """Display prediction results."""

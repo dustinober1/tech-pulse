@@ -82,19 +82,29 @@ class MultiSourceAggregator:
         max_items_per_source: int = 50
     ) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Fetch content from all configured sources concurrently.
+        Fetch data from all configured sources.
 
         Args:
-            reddit_subreddits: List of subreddits to fetch from
-            rss_categories: List of RSS categories to fetch
-            twitter_keywords: List of keywords for Twitter search
-            hours_ago: How many hours back to look
-            max_items_per_source: Maximum items per source
+            reddit_subreddits: List of subreddit names to fetch from
+            rss_categories: List of RSS categories to fetch from
+            twitter_keywords: List of Twitter keywords to search for
+            max_items_per_source: Maximum items to fetch per source
+            hours_ago: Only fetch items from this many hours ago
 
         Returns:
-            Dictionary with content from each source
+            Dict mapping source type to list of items
         """
-        logger.info("Starting multi-source content fetch...")
+        # Validate parameters
+        if rss_categories is None:
+            rss_categories = ['tech', 'ai', 'programming']
+        if reddit_subreddits is None:
+            reddit_subreddits = ['technology', 'MachineLearning', 'programming']
+        if twitter_keywords is None:
+            twitter_keywords = ['#tech', '#AI', '#programming']
+
+        # Log the fetch parameters for debugging
+        logger.info(f"Fetching from sources - RSS: {rss_categories}, "
+                   f"Reddit: {reddit_subreddits}, Twitter: {twitter_keywords}")
 
         # Create fetch tasks
         tasks = []

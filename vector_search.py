@@ -15,6 +15,50 @@ import numpy as np
 from tqdm import tqdm
 
 
+class DataAdapter:
+    """
+    Adapter to bridge data_loader output format with VectorSearchManager expectations.
+    """
+
+    @staticmethod
+    def normalize_for_vector_search(raw_data: List[Dict]) -> List[Dict]:
+        """
+        Convert raw data from data_loader to VectorSearchManager format.
+
+        Args:
+            raw_data: Raw data from data_loader functions
+
+        Returns:
+            List[Dict]: Normalized data with 'id', 'text', and 'metadata' fields
+        """
+        normalized = []
+        for item in raw_data:
+            # Handle different input formats
+            if isinstance(item, dict):
+                # Already a dict, ensure required fields
+                if 'id' not in item:
+                    item['id'] = str(hash(str(item.get('title', '') + str(item.get('url', '')))))
+                if 'text' not in item:
+                    # Combine title and description for search text
+                    title = item.get('title', '')
+                    desc = item.get('description', '') or item.get('summary', '')
+                    item['text'] = f"{title}. {desc}".strip()
+                # Keep existing metadata or create empty dict
+                if 'metadata' not in item:
+                    item['metadata'] = {k: v for k, v in item.items()
+                                       if k not in ['id', 'text']}
+            else:
+                # Convert non-dict items
+                normalized_item = {
+                    'id': str(hash(str(item))),
+                    'text': str(item),
+                    'metadata': {'source': 'unknown'}
+                }
+                item = normalized_item
+            normalized.append(item)
+        return normalized
+
+
 class VectorSearchManager:
     """
     Manages vector search operations using ChromaDB and sentence transformers.
@@ -198,59 +242,33 @@ class VectorSearchManager:
             self.logger.error(f"Failed to generate embeddings: {str(e)}")
             raise RuntimeError(f"Embedding generation failed: {str(e)}")
 
-    def add_documents(self,
-                      documents,
-                      ids: Optional[List[str]] = None,
-                      metadata: Optional[List[Dict[str, Any]]] = None) -> bool:
+    def add_documents(self, documents: List[Dict]) -> bool:
         """
-        Add documents to the vector store.
+        Add documents to the vector database.
 
         Args:
-            documents: List of document texts (strings) OR list of dicts with 'text', 'id', and metadata
-            ids: List of unique document IDs (optional if documents is list of dicts)
-            metadata: Optional list of metadata dictionaries (optional if documents is list of dicts)
+            documents: List of document dictionaries
 
         Returns:
             bool: True if successful, False otherwise
         """
-        # Handle dict format from data_loader
-        if documents and isinstance(documents[0], dict):
-            # Extract from dict format
-            doc_texts = []
-            doc_ids = []
-            doc_metadata = []
-
-            for doc in documents:
-                doc_texts.append(doc.get('text', ''))
-                doc_ids.append(doc.get('id', ''))
-                # Extract metadata from the dict
-                meta = {k: v for k, v in doc.items() if k not in ['text', 'id']}
-                doc_metadata.append(meta)
-
-            documents = doc_texts
-            ids = doc_ids
-            metadata = doc_metadata
-
-        if len(documents) != len(ids):
-            raise ValueError("Number of documents and IDs must match")
-
         try:
-            # Generate embeddings
-            embeddings = self.generate_embeddings(documents)
+            # Normalize documents using adapter
+            normalized_docs = DataAdapter.normalize_for_vector_search(documents)
 
-            # Prepare metadata if not provided
-            if metadata is None:
-                metadata = [{"text": doc[:100]} for doc in documents]
+            # Extract components for ChromaDB
+            ids = [doc['id'] for doc in normalized_docs]
+            texts = [doc['text'] for doc in normalized_docs]
+            metadatas = [doc['metadata'] for doc in normalized_docs]
 
-            # Add to collection
+            # Add to ChromaDB collection
             self.collection.add(
-                embeddings=embeddings,
-                documents=documents,
                 ids=ids,
-                metadatas=metadata
+                documents=texts,
+                metadatas=metadatas
             )
 
-            self.logger.info(f"Successfully added {len(documents)} documents to vector store")
+            self.logger.info(f"Successfully added {len(normalized_docs)} documents")
             return True
 
         except Exception as e:
@@ -261,7 +279,7 @@ class VectorSearchManager:
                query: str,
                n_results: int = 10,
                where: Optional[Dict[str, Any]] = None,
-               similarity_threshold: Optional[float] = None) -> Dict[str, Any]:
+               similarity_threshold: Optional[float] = None) -> List[Dict[str, Any]]:
         """
         Search for similar documents.
 
@@ -272,7 +290,7 @@ class VectorSearchManager:
             similarity_threshold: Optional minimum similarity threshold
 
         Returns:
-            Dictionary containing search results with similarity scores
+            List of search results with similarity scores
         """
         try:
             # Generate query embedding
@@ -287,36 +305,29 @@ class VectorSearchManager:
 
             # Format results
             formatted_results = []
-            for i, doc_id in enumerate(results['ids'][0]):
-                distance = results['distances'][0][i] if 'distances' in results else 0
-                similarity = 1 - distance  # Calculate similarity from distance
+            if results['ids'] and results['ids'][0]:
+                for i, doc_id in enumerate(results['ids'][0]):
+                    distance = results['distances'][0][i] if 'distances' in results else 0
+                    similarity = 1 - distance  # Calculate similarity from distance
 
-                # Apply similarity threshold if provided
-                if similarity_threshold is not None and similarity < similarity_threshold:
-                    continue
+                    # Apply similarity threshold if provided
+                    if similarity_threshold is not None and similarity < similarity_threshold:
+                        continue
 
-                formatted_results.append({
-                    'id': doc_id,
-                    'document': results['documents'][0][i],
-                    'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
-                    'distance': distance,
-                    'similarity': similarity
-                })
+                    formatted_results.append({
+                        'id': doc_id,
+                        'document': results['documents'][0][i],
+                        'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
+                        'distance': distance,
+                        'similarity': similarity
+                    })
 
-            return {
-                'query': query,
-                'results': formatted_results,
-                'count': len(formatted_results)
-            }
+            self.logger.info(f"Search returned {len(formatted_results)} results")
+            return formatted_results
 
         except Exception as e:
             self.logger.error(f"Search failed: {str(e)}")
-            return {
-                'query': query,
-                'results': [],
-                'count': 0,
-                'error': str(e)
-            }
+            return []
 
     def get_stats(self) -> Dict[str, Any]:
         """

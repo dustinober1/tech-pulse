@@ -107,7 +107,10 @@ ERROR_MESSAGES = {
     "model_loading": "AI models are loading... This may take a moment on first use.",
     "cache_error": "Cache issue detected. Refreshing with fresh data..."
     "semantic_search_error": "Error during semantic search. Please try again.",
-    "semantic_search_initialization_error": "Failed to initialize semantic search. Some features may be unavailable."
+    "semantic_search_initialization_error": "Failed to initialize semantic search. Some features may be unavailable.",
+    "pdf_generation_error": "Failed to generate PDF report. Please try again.",
+    "pdf_save_error": "Failed to save PDF. Check file permissions.",
+    "semantic_search_no_results": "No matching results found. Try different keywords."
 }
 
 SUCCESS_MESSAGES = {
@@ -118,9 +121,12 @@ SUCCESS_MESSAGES = {
     "mode_switched": "Mode switched successfully. Updates will occur automatically now.",
     "update_completed": "Real-time update completed successfully!",
     "reconnection_successful": "Successfully reconnected to real-time updates.",
-    "configuration_updated": "Real-time configuration updated successfully."
+    "configuration_updated": "Real-time configuration updated successfully.",
     "semantic_search_initialized": "Semantic search initialized successfully!",
-    "semantic_search_performed": "Semantic search completed successfully!"
+    "semantic_search_performed": "Semantic search completed successfully!",
+    "pdf_generated": "PDF report generated successfully!",
+    "pdf_saved": "PDF saved to downloads folder.",
+    "semantic_search_complete": "Search completed successfully."
 }
 
 LOADING_MESSAGES = {

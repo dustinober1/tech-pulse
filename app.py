@@ -40,6 +40,14 @@ def load_css():
         css = f.read()
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
+# Add error handling for st_autorefresh import
+try:
+    from streamlit_autorefresh import st_autorefresh
+    AUTO_REFRESH_AVAILABLE = True
+except ImportError:
+    AUTO_REFRESH_AVAILABLE = False
+    st.warning("Auto-refresh not available. Install streamlit-autorefresh: pip install streamlit-autorefresh")
+
 # Initialize session state
 def initialize_session_state():
     """Initialize session state variables"""
@@ -1061,10 +1069,8 @@ def main():
 def render_news_analysis_tab():
     """Render the news analysis tab"""
     # Check if real-time mode is enabled
-    if st.session_state.real_time_mode:
+    if st.session_state.real_time_mode and AUTO_REFRESH_AVAILABLE:
         # Use st_autorefresh for non-blocking auto-refresh
-        from streamlit_autorefresh import st_autorefresh
-
         # Auto-refresh every 60 seconds when real-time mode is on
         count = st_autorefresh(
             interval=REAL_TIME_SETTINGS['refresh_interval'] * 1000,  # Convert to milliseconds
@@ -1075,9 +1081,13 @@ def render_news_analysis_tab():
         # Check if we need to refresh data
         if st.session_state.last_update_time is None or count > 0:
             try:
-                refresh_data()
+                with st.spinner("Updating data..."):
+                    refresh_data()
+                    st.success(f"Data refreshed at {datetime.now().strftime('%H:%M:%S')}")
             except Exception as e:
                 st.error(f"Real-time update error: {str(e)}")
+                # Fall back to manual mode on error
+                st.session_state.real_time_mode = False
     else:
         # Manual mode - display timestamp and content once
         # Display timestamp in top-right
@@ -1087,6 +1097,17 @@ def render_news_analysis_tab():
 
         # Check auto-refresh
         check_auto_refresh()
+
+        # Always show manual refresh button
+        st.markdown("---")
+        col1, col2, col3 = st.columns([1, 2, 1])
+
+        with col2:
+            if st.button("🔄 Refresh Now", key="manual_refresh"):
+                with st.spinner("Refreshing data..."):
+                    refresh_data()
+                    st.success("Data refreshed successfully!")
+                    st.rerun()
 
         # Main content area
         if st.session_state.data is not None:
@@ -1187,6 +1208,75 @@ def render_user_profile_tab():
     with profile_tab5:
         # Topic management
         st.session_state.user_ui_components.render_topic_management()
+
+
+def semantic_search(query: str, n_results: int = 10) -> List[Dict]:
+    """
+    Perform semantic search on the loaded data.
+
+    Args:
+        query: Search query
+        n_results: Number of results to return
+
+    Returns:
+        List of matching documents
+    """
+    try:
+        # Check if we have loaded data
+        if not st.session_state.get('data_loaded', False):
+            st.warning("No data loaded for search. Please refresh data first.")
+            return []
+
+        # Check if vector search is initialized
+        if 'vector_manager' not in st.session_state:
+            st.error("Vector search not initialized")
+            return []
+
+        vector_manager = st.session_state.vector_manager
+
+        # Check if collection has documents
+        try:
+            count = vector_manager.collection.count()
+            if count == 0:
+                st.warning("No documents in search index. Loading data...")
+                # Load current data into vector search
+                if 'stories' in st.session_state and st.session_state.stories:
+                    success = vector_manager.add_documents(st.session_state.stories)
+                    if not success:
+                        st.error("Failed to load documents for search")
+                        return []
+                else:
+                    st.warning("No stories available for search")
+                    return []
+        except Exception as e:
+            st.error(f"Error checking search index: {str(e)}")
+            return []
+
+        # Perform search
+        results = vector_manager.search(
+            query=query,
+            n_results=min(n_results, count),  # Don't request more than available
+            where=None  # No filters for general search
+        )
+
+        # Format results for display
+        formatted_results = []
+        if results:
+            for doc in results:
+                formatted_doc = {
+                    'id': doc.get('id', ''),
+                    'text': doc.get('text', ''),
+                    'distance': doc.get('distance', 0),
+                    'metadata': doc.get('metadata', {})
+                }
+                formatted_results.append(formatted_doc)
+
+        return formatted_results
+
+    except Exception as e:
+        st.error(f"Semantic search error: {str(e)}")
+        return []
+
 
 if __name__ == "__main__":
     main()
