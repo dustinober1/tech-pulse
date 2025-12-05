@@ -47,3 +47,8 @@ htmlcov/
 # Logs
 *.log
 logs/
+
+# Build and temp directories
+build/
+temp/
+coverage/
