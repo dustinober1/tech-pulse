@@ -14,7 +14,10 @@ import time
 from data_loader import (
     fetch_hn_data, analyze_sentiment, get_topics, setup_vector_db, semantic_search,
     fetch_multi_source_data, analyze_multi_source_sentiment, extract_multi_source_topics,
-    get_multi_source_trends
+    get_multi_source_trends,
+    # Phase 8: PDF Generation Functions
+    generate_executive_briefing, get_pdf_generation_status, validate_pdf_generation_requirements,
+    estimate_pdf_generation_time
 )
 from dashboard_config import (
     PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS,
@@ -197,6 +200,98 @@ def create_sidebar():
         if export_format != "None" and st.session_state.data is not None:
             if st.button("Export Data", use_container_width=True):
                 export_data(export_format)
+
+        st.markdown("---")
+
+        # Executive Briefing Section (Phase 8)
+        st.markdown("### 📄 Executive Briefing")
+
+        # Check PDF generation status
+        pdf_status = get_pdf_generation_status()
+
+        # Show status indicator
+        if pdf_status['status'] == 'ready':
+            st.success("✅ PDF generation ready")
+        else:
+            st.warning(f"⚠️ PDF generation incomplete ({pdf_status['missing_count']} missing components)")
+            with st.expander("📋 Missing Components"):
+                for missing in pdf_status['validation']['missing_modules']:
+                    st.error(f"• {missing}")
+                for rec in pdf_status['validation']['recommendations']:
+                    st.info(f"💡 {rec}")
+
+        # Add OpenAI API key input (optional)
+        openai_key = st.text_input(
+            "OpenAI API Key (Optional)",
+            type="password",
+            help="Enter your OpenAI API key to enable AI-powered summaries. Leave blank for rule-based summaries."
+        )
+
+        # Add briefing options
+        col1, col2 = st.columns(2)
+        with col1:
+            pdf_stories = st.number_input(
+                "Stories",
+                min_value=10,
+                max_value=100,
+                value=30,
+                step=5,
+                help="Number of stories to include in the briefing"
+            )
+
+        with col2:
+            include_charts = st.checkbox(
+                "Include Charts",
+                value=True,
+                help="Include visual charts in the PDF"
+            )
+
+        # Show time estimation
+        time_est = estimate_pdf_generation_time(pdf_stories, include_charts)
+        st.info(f"⏱️ Estimated generation time: {time_est['estimated_seconds']}s")
+
+        # Generate and download button
+        if st.button("📥 Generate Briefing", help="Generate and download executive briefing PDF"):
+            try:
+                with st.spinner("🔄 Generating executive briefing..."):
+                    # Show progress
+                    progress_bar = st.progress(0)
+                    progress_bar.progress(25)
+
+                    # Generate PDF
+                    pdf_bytes = generate_executive_briefing(
+                        stories_count=int(pdf_stories),
+                        include_charts=include_charts,
+                        openai_api_key=openai_key if openai_key else None
+                    )
+
+                    progress_bar.progress(75)
+
+                    # Create download button
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    st.sidebar.download_button(
+                        label="📄 Download PDF Report",
+                        data=pdf_bytes,
+                        file_name=f"tech_pulse_briefing_{timestamp}.pdf",
+                        mime="application/pdf",
+                        type="primary"
+                    )
+
+                    progress_bar.progress(100)
+
+                st.success("✅ Executive briefing generated successfully!")
+
+                # Show file size
+                file_size_mb = len(pdf_bytes) / (1024 * 1024)
+                st.info(f"📊 File size: {file_size_mb:.2f} MB")
+
+            except ImportError as e:
+                st.error(f"❌ PDF generation modules not available: {str(e)}")
+                st.info("💡 Run: pip install -r requirements.txt to install required dependencies")
+            except RuntimeError as e:
+                st.error(f"❌ Failed to generate briefing: {str(e)}")
+            except Exception as e:
+                st.error(f"❌ Unexpected error: {str(e)}")
 
         st.markdown("---")
 
@@ -746,6 +841,87 @@ def create_realtime_display():
 
     return placeholder
 
+def create_executive_briefing_section(df):
+    """Create executive briefing preview section"""
+    st.markdown("---")
+
+    # Executive Briefing Preview
+    with st.container():
+        col1, col2 = st.columns([2, 1])
+
+        with col1:
+            st.subheader("📊 Executive Briefing")
+            st.write("Generate a professional PDF report containing:")
+
+            briefing_features = [
+                "🔍 AI-powered trend analysis",
+                "📈 Sentiment distribution charts",
+                "🏆 Top stories by engagement",
+                "🎯 Topic coverage analysis",
+                "⚡ Key metrics and insights",
+                "📅 Timestamped analysis"
+            ]
+
+            for feature in briefing_features:
+                st.markdown(f"• {feature}")
+
+        with col2:
+            # Check PDF generation status
+            pdf_status = get_pdf_generation_status()
+
+            if pdf_status['status'] == 'ready':
+                st.success("✅ Ready to generate")
+            else:
+                st.warning(f"⚠️ Setup incomplete")
+
+            # Quick generate button
+            if st.button("⚡ Quick Generate", key="quick_pdf", help="Generate PDF with default settings"):
+                try:
+                    with st.spinner("Preparing your briefing..."):
+                        pdf_bytes = generate_executive_briefing(
+                            stories_count=30,
+                            include_charts=True,
+                            openai_api_key=None  # Use rule-based by default
+                        )
+
+                        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                        st.download_button(
+                            label="📥 Download Now",
+                            data=pdf_bytes,
+                            file_name=f"tech_pulse_briefing_{timestamp}.pdf",
+                            mime="application/pdf",
+                            key="quick_download"
+                        )
+
+                    st.success("✅ Briefing ready for download!")
+                    # Show file size
+                    file_size_mb = len(pdf_bytes) / (1024 * 1024)
+                    st.info(f"📊 File size: {file_size_mb:.2f} MB")
+
+                except ImportError as e:
+                    st.error("❌ PDF generation not available")
+                    st.info("💡 Install dependencies: pip install -r requirements.txt")
+                except Exception as e:
+                    st.error(f"❌ Generation failed: {str(e)}")
+
+            # Show features based on availability
+            if pdf_status['status'] == 'incomplete':
+                with st.expander("📋 Setup Requirements"):
+                    for missing in pdf_status['validation']['missing_modules']:
+                        st.error(f"• {missing}")
+                    for rec in pdf_status['validation']['recommendations']:
+                        st.info(f"💡 {rec}")
+
+            # Show available features
+            if pdf_status['status'] == 'ready':
+                st.info("📋 Available features:")
+                if pdf_status['can_generate_basic']:
+                    st.success("✅ Basic PDF generation")
+                if pdf_status['can_generate_charts']:
+                    st.success("✅ Chart inclusion")
+                if pdf_status['has_ai_summaries']:
+                    st.success("✅ AI summaries (with API key)")
+
 def create_content_in_placeholder(placeholder):
     """Create and render all content within the placeholder container"""
     with placeholder.container():
@@ -758,6 +934,9 @@ def create_content_in_placeholder(placeholder):
         if st.session_state.data is not None:
             # Create metrics row
             create_metrics_row(st.session_state.data)
+
+            # Executive Briefing Preview Section (Phase 8)
+            create_executive_briefing_section(st.session_state.data)
 
             # Create semantic search section after metrics
             create_semantic_search_section(st.session_state.data)
