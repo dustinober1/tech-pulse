@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.0.1, pluggy-1.6.0 -- /Users/dustinober/tech-pulse/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/dustinober/tech-pulse
+collecting ... collected 11 items
+
+test/test_deployment_ready.py::TestDeploymentReady::test_app_py_exists PASSED [  9%]
+test/test_deployment_ready.py::TestDeploymentReady::test_app_py_has_main PASSED [ 18%]
+test/test_deployment_ready.py::TestDeploymentReady::test_cache_manager_exists PASSED [ 27%]
+test/test_deployment_ready.py::TestDeploymentReady::test_dashboard_config_exists PASSED [ 36%]
+test/test_deployment_ready.py::TestDeploymentReady::test_data_loader_exists PASSED [ 45%]
+test/test_deployment_ready.py::TestDeploymentReady::test_git_clean PASSED [ 54%]
+test/test_deployment_ready.py::TestDeploymentReady::test_gitignore_ready PASSED [ 63%]
+test/test_deployment_ready.py::TestDeploymentReady::test_no_absolute_local_paths PASSED [ 72%]
+test/test_deployment_ready.py::TestDeploymentReady::test_remote_exists PASSED [ 81%]
+test/test_deployment_ready.py::TestDeploymentReady::test_requirements_complete PASSED [ 90%]
+test/test_deployment_ready.py::TestDeploymentReady::test_streamlit_page_config PASSED [100%]
+
+============================== 11 passed in 0.04s ==============================
