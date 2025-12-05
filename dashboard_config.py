@@ -117,3 +117,56 @@ LOADING_MESSAGES = {
     "loading": "Loading dashboard...",
     "refreshing": "Refreshing data..."
 }
+
+# Semantic search settings
+SEMANTIC_SEARCH_SETTINGS = {
+    "model_name": "all-MiniLM-L6-v2",
+    "max_results": 10,
+    "similarity_threshold": 0.7,
+    "batch_size": 50,
+    "enable_cache": True,
+    "cache_duration": 3600,
+    "min_query_length": 3,
+    "max_query_length": 100
+}
+
+# Semantic search messages
+SEMANTIC_SEARCH_MESSAGES = {
+    "initializing": "Initializing semantic search engine...",
+    "searching": "Performing semantic search...",
+    "no_results": "No relevant results found for your query.",
+    "error": "Error occurred during semantic search. Please try again.",
+    "help": "Semantic search finds stories with similar meanings to your query. "
+           "Enter at least 3 characters to search. "
+           "Results are ranked by semantic similarity."
+}
+
+# Error messages
+ERROR_MESSAGES = {
+    "no_data": "No data available. Please refresh to fetch latest stories.",
+    "api_error": "Unable to fetch data from Hacker News. Please try again later.",
+    "analysis_error": "Error analyzing data. Please refresh and try again.",
+    "connection_error": "Connection error. Please check your internet connection.",
+    "real_time_failure": "Real-time mode encountered an error. Switching to manual refresh mode.",
+    "rate_limit_error": "API rate limit exceeded. Please wait before refreshing or reduce refresh frequency.",
+    "connection_during_real_time": "Connection lost during real-time updates. Reconnecting automatically...",
+    "real_time_timeout": "Real-time update timed out. Please check your connection and try again.",
+    "initialization_error": "Failed to initialize real-time mode. Please refresh the page and try again.",
+    "configuration_error": "Real-time configuration error. Using default settings.",
+    "semantic_search_error": "Error during semantic search. Please try again.",
+    "semantic_search_initialization_error": "Failed to initialize semantic search. Some features may be unavailable."
+}
+
+# Success messages
+SUCCESS_MESSAGES = {
+    "data_loaded": "Data successfully loaded and analyzed!",
+    "refresh_complete": "Data refresh complete!",
+    "export_successful": "Data exported successfully!",
+    "real_time_activated": "Real-time mode activated! Data will refresh automatically every 60 seconds.",
+    "mode_switched": "Mode switched successfully. Updates will occur automatically now.",
+    "update_completed": "Real-time update completed successfully!",
+    "reconnection_successful": "Successfully reconnected to real-time updates.",
+    "configuration_updated": "Real-time configuration updated successfully.",
+    "semantic_search_initialized": "Semantic search initialized successfully!",
+    "semantic_search_performed": "Semantic search completed successfully!"
+}
