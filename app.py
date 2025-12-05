@@ -18,6 +18,10 @@ from dashboard_config import (
     REAL_TIME_SETTINGS, SEMANTIC_SEARCH_SETTINGS, SEMANTIC_SEARCH_MESSAGES
 )
 from phase7.predictive_analytics.dashboard import PredictiveDashboard
+from phase7.user_management.database import UserDatabase
+from phase7.user_management.user_profile import UserProfile
+from phase7.user_management.recommendations import PersonalizedRecommendations
+from phase7.user_management.ui_components import UIComponents
 
 # Configure page
 st.set_page_config(**PAGE_CONFIG)
@@ -45,6 +49,17 @@ def initialize_session_state():
     # Predictive Analytics session state
     if 'predictive_dashboard' not in st.session_state:
         st.session_state.predictive_dashboard = PredictiveDashboard()
+    # User Management session state
+    if 'current_user_id' not in st.session_state:
+        # Create a default user for demo purposes
+        db = UserDatabase()
+        st.session_state.current_user_id = db.create_user(
+            username=f"demo_user_{datetime.now().strftime('%Y%m%d')}",
+            email="demo@techpulse.com",
+            preferences={"theme": "light", "notifications": True}
+        )
+    if 'user_ui_components' not in st.session_state:
+        st.session_state.user_ui_components = UIComponents(st.session_state.current_user_id)
     # Remove old auto_refresh and refresh_countdown if they exist
     if 'auto_refresh' in st.session_state:
         del st.session_state.auto_refresh
@@ -156,6 +171,14 @@ def create_sidebar():
             **Semantic Search:**
             {HELP_TEXT['semantic_search']}
             """)
+
+        st.markdown("---")
+
+        # User Profile Section
+        st.session_state.user_ui_components.render_mini_profile_card()
+
+        # Quick Actions
+        quick_actions = st.session_state.user_ui_components.render_quick_actions()
 
 def create_metrics_row(df):
     """Create metrics display row"""
@@ -591,12 +614,13 @@ def main():
     create_sidebar()
 
     # Create tabs for different features
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 News Analysis",
         "🔍 Semantic Search",
         "📈 Trend Predictions",
         "🔍 Anomaly Detection",
-        "🤖 Model Training"
+        "🤖 Model Training",
+        "👤 User Profile"
     ])
 
     with tab1:
@@ -618,6 +642,10 @@ def main():
     with tab5:
         # Model training tab
         render_model_training_tab()
+
+    with tab6:
+        # User Profile tab
+        render_user_profile_tab()
 
 def render_news_analysis_tab():
     """Render the news analysis tab"""
@@ -713,6 +741,52 @@ def render_model_training_tab():
     """Render the model training tab"""
     st.header("🤖 Model Training Management")
     st.session_state.predictive_dashboard.render_model_training_tab()
+
+def render_user_profile_tab():
+    """Render the user profile tab with personalization features"""
+    st.header("👤 Your Profile & Personalization")
+
+    # Create sub-tabs for user profile features
+    profile_tab1, profile_tab2, profile_tab3, profile_tab4, profile_tab5 = st.tabs([
+        "👤 Profile Overview",
+        "⚙️ Preferences",
+        "🎯 Recommendations",
+        "📊 Analytics",
+        "🏷️ Topics"
+    ])
+
+    with profile_tab1:
+        # Profile overview section
+        profile_data = st.session_state.user_ui_components.render_user_profile_section()
+
+        # Activity feed
+        st.markdown("---")
+        st.session_state.user_ui_components.render_activity_feed(limit=10)
+
+    with profile_tab2:
+        # Preferences editor
+        st.session_state.user_ui_components.render_preferences_editor()
+
+        st.markdown("---")
+
+        # Data export/import
+        col1, col2 = st.columns(2)
+        with col1:
+            st.session_state.user_ui_components.render_export_data_section()
+        with col2:
+            st.session_state.user_ui_components.render_import_data_section()
+
+    with profile_tab3:
+        # Recommendations section
+        st.session_state.user_ui_components.render_recommendations_section()
+
+    with profile_tab4:
+        # Analytics dashboard
+        st.session_state.user_ui_components.render_analytics_dashboard()
+
+    with profile_tab5:
+        # Topic management
+        st.session_state.user_ui_components.render_topic_management()
 
 if __name__ == "__main__":
     main()
