@@ -17,6 +17,7 @@ from dashboard_config import (
     CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES,
     REAL_TIME_SETTINGS, SEMANTIC_SEARCH_SETTINGS, SEMANTIC_SEARCH_MESSAGES
 )
+from phase7.predictive_analytics.dashboard import PredictiveDashboard
 
 # Configure page
 st.set_page_config(**PAGE_CONFIG)
@@ -41,6 +42,9 @@ def initialize_session_state():
         st.session_state.vector_db_initialized = False
     if 'search_results' not in st.session_state:
         st.session_state.search_results = None
+    # Predictive Analytics session state
+    if 'predictive_dashboard' not in st.session_state:
+        st.session_state.predictive_dashboard = PredictiveDashboard()
     # Remove old auto_refresh and refresh_countdown if they exist
     if 'auto_refresh' in st.session_state:
         del st.session_state.auto_refresh
@@ -586,6 +590,37 @@ def main():
     # Create sidebar
     create_sidebar()
 
+    # Create tabs for different features
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 News Analysis",
+        "🔍 Semantic Search",
+        "📈 Trend Predictions",
+        "🔍 Anomaly Detection",
+        "🤖 Model Training"
+    ])
+
+    with tab1:
+        # Original news analysis tab
+        render_news_analysis_tab()
+
+    with tab2:
+        # Semantic search tab
+        render_semantic_search_tab()
+
+    with tab3:
+        # Predictive analytics tab
+        render_prediction_tab()
+
+    with tab4:
+        # Anomaly detection tab
+        render_anomaly_tab()
+
+    with tab5:
+        # Model training tab
+        render_model_training_tab()
+
+def render_news_analysis_tab():
+    """Render the news analysis tab"""
     # Check if real-time mode is enabled
     if st.session_state.real_time_mode:
         # Create placeholder for real-time content
@@ -630,9 +665,6 @@ def main():
             # Create metrics row
             create_metrics_row(st.session_state.data)
 
-            # Create semantic search section after metrics
-            create_semantic_search_section(st.session_state.data)
-
             st.markdown("---")
 
             # Create charts row
@@ -657,6 +689,30 @@ def main():
             # Auto-refresh on first load
             if st.session_state.last_refresh is None:
                 refresh_data()
+
+def render_semantic_search_tab():
+    """Render the semantic search tab"""
+    st.header("🔍 Semantic Search")
+
+    if st.session_state.data is not None and not st.session_state.data.empty:
+        create_semantic_search_section(st.session_state.data)
+    else:
+        st.info("Please load data from the News Analysis tab first to enable semantic search.")
+
+def render_prediction_tab():
+    """Render the trend prediction tab"""
+    st.header("📈 Technology Trend Predictions")
+    st.session_state.predictive_dashboard.render_prediction_tab()
+
+def render_anomaly_tab():
+    """Render the anomaly detection tab"""
+    st.header("🔍 Anomaly Detection")
+    st.session_state.predictive_dashboard.render_anomaly_tab()
+
+def render_model_training_tab():
+    """Render the model training tab"""
+    st.header("🤖 Model Training Management")
+    st.session_state.predictive_dashboard.render_model_training_tab()
 
 if __name__ == "__main__":
     main()
