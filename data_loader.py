@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 from datetime import datetime
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 import unittest.mock as mock
 
 # Analysis imports
@@ -11,6 +11,13 @@ from bertopic import BERTopic
 
 # Cache imports
 from cache_manager import CacheManager
+
+# Vector search imports
+from vector_search import get_vector_engine
+from dashboard_config import SEMANTIC_SEARCH_SETTINGS
+
+# Vector cache imports
+from vector_cache_manager import get_vector_cache_manager
 
 # Download NLTK data if needed
 try:
@@ -151,6 +158,101 @@ def analyze_sentiment(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def setup_vector_db(df: pd.DataFrame, collection_name: str = "hn_stories",
+                    force_rebuild: bool = False) -> Optional[Any]:
+    """
+    Set up vector database with story titles for semantic search.
+    Uses caching to avoid rebuilding when data hasn't changed.
+
+    Args:
+        df: DataFrame containing story data with 'title' column
+        collection_name: Name for the ChromaDB collection
+        force_rebuild: Force rebuild regardless of cache
+
+    Returns:
+        ChromaDB collection object or None if setup fails
+    """
+    if df.empty or 'title' not in df.columns:
+        print("Warning: DataFrame is empty or missing 'title' column")
+        return None
+
+    # Get vector cache manager
+    cache_manager = get_vector_cache_manager()
+
+    # Convert DataFrame to list of dictionaries for hashing
+    df_data = df.to_dict('records')
+
+    # Check if we should use cached collection
+    if not force_rebuild and not cache_manager.should_rebuild_collection(df_data):
+        print("Using cached vector collection...")
+        cached_collection = cache_manager.get_cached_collection()
+        if cached_collection is not None:
+            cache_info = cache_manager.get_cache_info()
+            print(f"Cache version: {cache_info.get('version', 'unknown')}")
+            return cached_collection
+
+    print("Setting up vector database for semantic search...")
+
+    # Get vector engine
+    vector_engine = get_vector_engine(
+        model_name=SEMANTIC_SEARCH_SETTINGS["model_name"],
+        collection_name=collection_name
+    )
+
+    try:
+        # Initialize the engine
+        vector_engine.initialize()
+
+        # Clear existing collection to ensure fresh data
+        vector_engine.clear_collection()
+
+        # Prepare documents with metadata
+        documents = []
+        for idx, row in df.iterrows():
+            doc = {
+                'id': f"story_{idx}_{hash(row['title']) % 1000000}",  # Generate unique ID
+                'text': row['title'],
+                'score': row.get('score', 0),
+                'time': row.get('time', datetime.now()).isoformat(),
+                'url': row.get('url', ''),
+                'sentiment_label': row.get('sentiment_label', ''),
+                'topic_keyword': row.get('topic_keyword', ''),
+                'index': idx  # Keep original index for reference
+            }
+            documents.append(doc)
+
+        # Process in batches
+        batch_size = SEMANTIC_SEARCH_SETTINGS["batch_size"]
+        total_batches = (len(documents) + batch_size - 1) // batch_size
+
+        print(f"Processing {len(documents)} stories in {total_batches} batches...")
+
+        for i in range(0, len(documents), batch_size):
+            batch = documents[i:i + batch_size]
+            batch_num = i // batch_size + 1
+
+            print(f"Processing batch {batch_num}/{total_batches} ({len(batch)} stories)...")
+
+            # Add batch to vector database
+            success = vector_engine.add_documents(batch)
+            if not success:
+                print(f"Warning: Failed to add batch {batch_num} to vector database")
+
+        # Get collection info
+        info = vector_engine.get_collection_info()
+        print(f"Vector database setup complete! Collection '{info['name']}' contains {info['count']} stories")
+
+        # Cache the collection
+        data_hash = cache_manager.generate_data_hash(df_data)
+        cache_manager.cache_collection(vector_engine.collection, data_hash)
+
+        return vector_engine.collection
+
+    except Exception as e:
+        print(f"Error setting up vector database: {e}")
+        return None
+
+
 def get_topics(df: pd.DataFrame, embedding_model: str = 'all-MiniLM-L6-v2') -> pd.DataFrame:
     """
     Extract topics from story titles using BERTopic.
@@ -231,6 +333,74 @@ def get_topics(df: pd.DataFrame, embedding_model: str = 'all-MiniLM-L6-v2') -> p
         df['topic_id'] = -1
         df['topic_keyword'] = 'Error'
         return df
+
+
+def semantic_search(collection, query: str, max_results: Optional[int] = None,
+                   similarity_threshold: Optional[float] = None) -> List[Dict[str, any]]:
+    """
+    Perform semantic search on the vector collection.
+
+    Args:
+        collection: ChromaDB collection object
+        query: Search query string
+        max_results: Maximum number of results to return
+        similarity_threshold: Minimum similarity score threshold
+
+    Returns:
+        List of search results with document metadata and similarity scores
+    """
+    # Use defaults from config if not provided
+    if max_results is None:
+        max_results = SEMANTIC_SEARCH_SETTINGS["max_results"]
+    if similarity_threshold is None:
+        similarity_threshold = SEMANTIC_SEARCH_SETTINGS["similarity_threshold"]
+
+    # Validate query
+    if not query or len(query.strip()) < SEMANTIC_SEARCH_SETTINGS["min_query_length"]:
+        print(f"Query too short. Minimum length: {SEMANTIC_SEARCH_SETTINGS['min_query_length']} characters")
+        return []
+
+    if len(query) > SEMANTIC_SEARCH_SETTINGS["max_query_length"]:
+        print(f"Query too long. Maximum length: {SEMANTIC_SEARCH_SETTINGS['max_query_length']} characters")
+        return []
+
+    if collection is None:
+        print("Error: Vector collection not initialized")
+        return []
+
+    try:
+        # Get vector engine and perform search
+        vector_engine = get_vector_engine(
+            model_name=SEMANTIC_SEARCH_SETTINGS["model_name"]
+        )
+        vector_engine.collection = collection  # Use the provided collection
+
+        print(f"Performing semantic search for: '{query}'...")
+        results = vector_engine.search(
+            query=query,
+            n_results=max_results,
+            similarity_threshold=similarity_threshold
+        )
+
+        # Format results with additional context
+        formatted_results = []
+        for result in results:
+            formatted_result = {
+                'title': result['document'],
+                'metadata': result['metadata'],
+                'similarity_score': round(result['similarity'], 3),
+                'distance': round(result['distance'], 3),
+                'rank': len(formatted_results) + 1,
+                'explanation': f"Similarity: {result['similarity']:.1%}"
+            }
+            formatted_results.append(formatted_result)
+
+        print(f"Found {len(formatted_results)} relevant stories")
+        return formatted_results
+
+    except Exception as e:
+        print(f"Error during semantic search: {e}")
+        return []
 
 
 def fetch_hn_data(limit: int = 30, use_cache: bool = True, cache_duration_hours: int = 1) -> pd.DataFrame:
@@ -317,6 +487,9 @@ if __name__ == '__main__':
     print('\n3. Extracting Topics...')
     df = get_topics(df)
 
+    print('\n4. Setting up Vector Database...')
+    vector_collection = setup_vector_db(df)
+
     print('\nTop 5 Rows with Analysis:')
     # Display relevant columns
     display_columns = ['title', 'sentiment_label', 'topic_keyword', 'score']
@@ -338,3 +511,22 @@ if __name__ == '__main__':
     if 'topic_keyword' in df.columns:
         print(f"\nTop Topics:")
         print(df['topic_keyword'].value_counts().head(10))
+
+    # Test semantic search if vector database was set up
+    if vector_collection:
+        print('\n5. Testing Semantic Search...')
+        test_queries = [
+            "artificial intelligence",
+            "python programming",
+            "startup funding"
+        ]
+
+        for query in test_queries:
+            print(f"\nSearching for: '{query}'")
+            results = semantic_search(vector_collection, query)
+            if results:
+                for i, result in enumerate(results[:3], 1):
+                    print(f"  {i}. {result['title'][:80]}...")
+                    print(f"     Similarity: {result['similarity_score']:.3f}")
+            else:
+                print("  No results found")
