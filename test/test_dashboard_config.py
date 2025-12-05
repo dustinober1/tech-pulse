@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dashboard_config import (
-    PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS,
+    PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS, REAL_TIME_SETTINGS,
     CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES
 )
 
@@ -112,6 +112,63 @@ class TestDashboardConfig(unittest.TestCase):
         # Test sentiment colors use main color palette
         for sentiment, color in SENTIMENT_COLORS.items():
             self.assertIn(color, list(COLORS.values()))
+
+    def test_real_time_settings(self):
+        """Test real-time settings configuration"""
+        required_settings = ['refresh_interval', 'enabled', 'auto_start', 'max_attempts',
+                           'timeout', 'retry_delay', 'visual_indicator', 'toggle_settings']
+        for key in required_settings:
+            self.assertIn(key, REAL_TIME_SETTINGS)
+            self.assertIsNotNone(REAL_TIME_SETTINGS[key])
+
+        # Test refresh interval is 60 seconds for real-time
+        self.assertEqual(REAL_TIME_SETTINGS['refresh_interval'], 60)
+
+        # Test visual indicator settings
+        visual_indicator = REAL_TIME_SETTINGS['visual_indicator']
+        self.assertIsInstance(visual_indicator, dict)
+        self.assertIn('enabled', visual_indicator)
+        self.assertIn('color', visual_indicator)
+        self.assertIn('blink_interval', visual_indicator)
+        self.assertIn('show_tooltip', visual_indicator)
+
+        # Test color is valid hex
+        self.assertTrue(visual_indicator['color'].startswith('#'))
+        self.assertEqual(len(visual_indicator['color']), 7)
+
+        # Test toggle settings
+        toggle_settings = REAL_TIME_SETTINGS['toggle_settings']
+        self.assertIsInstance(toggle_settings, dict)
+        expected_toggles = ['enable_notifications', 'enable_sound_alerts', 'enable_progress_bar',
+                          'show_last_update', 'enable_error_recovery']
+        for key in expected_toggles:
+            self.assertIn(key, toggle_settings)
+
+    def test_real_time_help_text(self):
+        """Test real-time help text"""
+        required_help = ['real_time_mode', 'real_time_enable', 'refresh_interval', 'troubleshooting']
+        for key in required_help:
+            self.assertIn(key, HELP_TEXT)
+            self.assertIsInstance(HELP_TEXT[key], str)
+            self.assertGreater(len(HELP_TEXT[key]), 10)
+
+    def test_real_time_error_messages(self):
+        """Test real-time error messages"""
+        required_errors = ['real_time_failure', 'rate_limit_error', 'connection_during_real_time',
+                         'real_time_timeout', 'initialization_error', 'configuration_error']
+        for key in required_errors:
+            self.assertIn(key, ERROR_MESSAGES)
+            self.assertIsInstance(ERROR_MESSAGES[key], str)
+            self.assertGreater(len(ERROR_MESSAGES[key]), 5)
+
+    def test_real_time_success_messages(self):
+        """Test real-time success messages"""
+        required_success = ['real_time_activated', 'mode_switched', 'update_completed',
+                          'reconnection_successful', 'configuration_updated']
+        for key in required_success:
+            self.assertIn(key, SUCCESS_MESSAGES)
+            self.assertIsInstance(SUCCESS_MESSAGES[key], str)
+            self.assertGreater(len(SUCCESS_MESSAGES[key]), 5)
 
 
 if __name__ == '__main__':
