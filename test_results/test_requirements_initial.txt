@@ -1,0 +1,62 @@
+test_no_standard_library_packages (test.test_requirements.TestRequirements.test_no_standard_library_packages)
+Test that no standard library packages are listed in requirements.txt. ... ok
+test_required_packages_present (test.test_requirements.TestRequirements.test_required_packages_present)
+Test that all critical packages are present in requirements.txt. ... FAIL
+test_requirements_file_exists (test.test_requirements.TestRequirements.test_requirements_file_exists)
+Test that requirements.txt exists in the project root. ... ok
+test_requirements_file_format (test.test_requirements.TestRequirements.test_requirements_file_format)
+Test that each line in requirements.txt follows proper pip format. ... FAIL
+test_version_specifications (test.test_requirements.TestRequirements.test_version_specifications)
+Test that all packages have version specifications. ... ok
+
+======================================================================
+FAIL: test_required_packages_present (test.test_requirements.TestRequirements.test_required_packages_present)
+Test that all critical packages are present in requirements.txt.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dustinober/tech-pulse/test/test_requirements.py", line 178, in test_required_packages_present
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        len(missing_packages), 0,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        f"Missing critical packages in requirements.txt: {sorted(missing_packages)}\n"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        f"Found packages: {sorted(found_packages)}"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: 6 != 0 : Missing critical packages in requirements.txt: ['plotly', 'pyarrow', 'scikit-learn', 'sentence-transformers', 'streamlit', 'tabulate']
+Found packages: ['bertopic', 'hdbscan', 'nltk', 'pandas', 'requests']
+
+======================================================================
+FAIL: test_requirements_file_format (test.test_requirements.TestRequirements.test_requirements_file_format)
+Test that each line in requirements.txt follows proper pip format.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/dustinober/tech-pulse/test/test_requirements.py", line 133, in test_requirements_file_format
+    self.assertEqual(
+    ~~~~~~~~~~~~~~~~^
+        len(errors), 0,
+        ^^^^^^^^^^^^^^^
+        f"requirements.txt has formatting issues:\n" + "\n".join(errors)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+AssertionError: 12 != 0 : requirements.txt has formatting issues:
+Line 1: Comment line found - '# Core dependencies for Tech-Pulse'
+Line 7: Blank line found - ''
+Line 8: Comment line found - '# Additional dependencies automatically installed by bertopic:'
+Line 9: Comment line found - '# sentence-transformers>=2.0.0'
+Line 10: Comment line found - '# torch>=1.11.0'
+Line 11: Comment line found - '# scikit-learn>=1.0.0'
+Line 12: Comment line found - '# umap-learn>=0.5.0'
+Line 13: Comment line found - '# numpy>=1.20.0'
+Line 14: Comment line found - '# scipy>=1.0.0'
+Line 15: Blank line found - ''
+Line 16: Comment line found - '# Testing dependencies (usually included with Python)'
+Line 17: Comment line found - '# unittest (included in standard library)'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.001s
+
+FAILED (failures=2)
