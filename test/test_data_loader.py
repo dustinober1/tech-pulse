@@ -270,10 +270,14 @@ class TestFetchHnData(unittest.TestCase):
     @patch('data_loader.extract_story_data')
     @patch('data_loader.fetch_story_details')
     @patch('data_loader.fetch_story_ids')
+    @patch('data_loader.CacheManager')
     @patch('builtins.print')
-    def test_fetch_hn_data_success(self, mock_print, mock_fetch_ids,
+    def test_fetch_hn_data_success(self, mock_print, mock_cache_manager, mock_fetch_ids,
                                  mock_fetch_details, mock_extract, mock_process):
         """Test successful fetch of HN data"""
+        # Mock cache manager to return None (no cached data)
+        mock_cache_manager.return_value.get_cached_data.return_value = None
+
         # Setup mocks
         mock_fetch_ids.return_value = [1, 2, 3]
         mock_fetch_details.side_effect = [
@@ -360,10 +364,13 @@ class TestFetchHnData(unittest.TestCase):
         self.assertIsInstance(result, pd.DataFrame)
         self.assertEqual(len(result), 1)
 
+    @patch('data_loader.CacheManager')
     @patch('data_loader.fetch_story_ids')
     @patch('builtins.print')
-    def test_fetch_hn_data_custom_limit(self, mock_print, mock_fetch_ids):
+    def test_fetch_hn_data_custom_limit(self, mock_print, mock_fetch_ids, mock_cache_manager):
         """Test fetching with custom limit"""
+        # Mock cache manager to return None (no cached data)
+        mock_cache_manager.return_value.get_cached_data.return_value = None
         mock_fetch_ids.return_value = list(range(100))
 
         with patch('data_loader.process_stories_to_dataframe') as mock_process, \

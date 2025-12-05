@@ -16,19 +16,47 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import sys
 from types import ModuleType
 
+# Create a mock session state that behaves like both a dict and an object
+class MockSessionState(dict):
+    """Mock session state that allows both dict and attribute access"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self.__dict__[key] = value
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+# Helper function to create context manager mocks
+def create_context_manager_mock():
+    """Create a mock that supports context manager protocol"""
+    mock = Mock()
+    mock.__enter__ = Mock(return_value=None)
+    mock.__exit__ = Mock(return_value=None)
+    return mock
+
 # Create mock streamlit module
 mock_streamlit = ModuleType('streamlit')
 mock_streamlit.set_page_config = Mock()
 mock_streamlit.markdown = Mock()
-mock_streamlit.sidebar = Mock()
+mock_streamlit.sidebar = create_context_manager_mock()
 mock_streamlit.columns = Mock(return_value=[Mock(), Mock(), Mock()])
 mock_streamlit.button = Mock(return_value=False)
 mock_streamlit.slider = Mock(return_value=30)
 mock_streamlit.checkbox = Mock(return_value=False)
 mock_streamlit.selectbox = Mock(return_value="None")
 mock_streamlit.multiselect = Mock(return_value=["All"])
-mock_streamlit.expander = Mock()
-mock_streamlit.spinner = Mock()
+mock_streamlit.expander = Mock(side_effect=lambda *args, **kwargs: create_context_manager_mock())
+mock_streamlit.spinner = Mock(side_effect=lambda *args, **kwargs: create_context_manager_mock())
 mock_streamlit.success = Mock()
 mock_streamlit.error = Mock()
 mock_streamlit.warning = Mock()
@@ -36,7 +64,7 @@ mock_streamlit.info = Mock()
 mock_streamlit.plotly_chart = Mock()
 mock_streamlit.dataframe = Mock()
 mock_streamlit.download_button = Mock()
-mock_streamlit.session_state = {}
+mock_streamlit.session_state = MockSessionState()
 
 sys.modules['streamlit'] = mock_streamlit
 
@@ -106,25 +134,40 @@ class TestDashboardInitialization(unittest.TestCase):
 class TestDashboardComponents(unittest.TestCase):
     """Test dashboard component functions"""
 
-    @patch('app.st')
-    def test_create_header(self, mock_st):
+    def test_create_header(self):
         """Test header creation"""
+        # Import the global mock streamlit
+        import app
+
+        # Reset mock calls to ensure clean state
+        mock_streamlit.markdown.reset_mock()
+
         app.create_header()
-        mock_st.markdown.assert_called()
+        mock_streamlit.markdown.assert_called()
 
         # Check if the call contains expected content
-        call_args = mock_st.markdown.call_args
+        call_args = mock_streamlit.markdown.call_args
         self.assertIn('Tech-Pulse Dashboard', call_args[0][0])
 
-    @patch('app.st')
-    def test_create_sidebar(self, mock_st):
+    def test_create_sidebar(self):
         """Test sidebar creation"""
+        # Import the global mock streamlit
+        import app
+
+        # Reset mock calls to ensure clean state
+        mock_streamlit.slider.reset_mock()
+        mock_streamlit.button.reset_mock()
+        mock_streamlit.checkbox.reset_mock()
+        mock_streamlit.multiselect.reset_mock()
+        mock_streamlit.selectbox.reset_mock()
+        mock_streamlit.markdown.reset_mock()
+
         # Mock sidebar components
-        mock_st.sidebar.slider.return_value = 30
-        mock_st.sidebar.button.return_value = False
-        mock_st.sidebar.checkbox.return_value = False
-        mock_st.sidebar.multiselect.return_value = ['All']
-        mock_st.sidebar.selectbox.return_value = 'None'
+        mock_streamlit.slider.return_value = 30
+        mock_streamlit.button.return_value = False
+        mock_streamlit.checkbox.return_value = False
+        mock_streamlit.multiselect.return_value = ['All']
+        mock_streamlit.selectbox.return_value = 'None'
 
         # Mock session state
         app.st.session_state.data = pd.DataFrame()
@@ -134,10 +177,11 @@ class TestDashboardComponents(unittest.TestCase):
 
         app.create_sidebar()
 
-        # Verify sidebar components were called
-        mock_st.sidebar.slider.assert_called()
-        mock_st.sidebar.button.assert_called()
-        mock_st.sidebar.checkbox.assert_called()
+        # Verify components were called (within sidebar context, st.slider is called, not st.sidebar.slider)
+        mock_streamlit.slider.assert_called()
+        mock_streamlit.button.assert_called()
+        mock_streamlit.checkbox.assert_called()
+        mock_streamlit.markdown.assert_called()  # Should be called for the header
 
     def test_create_metrics_row_with_data(self):
         """Test metrics row creation with data"""
@@ -412,11 +456,14 @@ class TestDashboardIntegration(unittest.TestCase):
         mock_analyze.return_value = test_data.copy()
         mock_topics.return_value = test_data.copy()
 
+        # Set up session state
+        app.st.session_state.stories_count = 30
+
         # Test complete refresh flow
         app.refresh_data()
 
         # Verify data pipeline was called correctly
-        mock_fetch.assert_called_once()
+        mock_fetch.assert_called_once_with(limit=30)
         mock_analyze.assert_called_once()
         mock_topics.assert_called_once()
 
