@@ -17,14 +17,18 @@ import json
 from pathlib import Path
 
 # Import local modules
-from src.phase7.predictive_analytics.predictor import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from .predictor import (
     PredictiveEngine,
     PredictionResult,
     AnomalyResult
 )
-from src.phase7.predictive_analytics.training_data import TrainingDataCollector
-from src.phase7.predictive_analytics.train_model import ModelTrainer
-from src.data_loader import DataLoader
+from .training_data import TrainingDataCollector
+from .train_model import ModelTrainer
+# Note: DataLoader class doesn't exist, using data_loader functions directly
+# from data_loader import DataLoader
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +48,7 @@ class PredictiveDashboard:
         self.predictive_engine = PredictiveEngine()
         self.data_collector = TrainingDataCollector()
         self.model_trainer = ModelTrainer()
-        self.data_loader = DataLoader()
+        # self.data_loader = DataLoader()  # DataLoader class doesn't exist, using data_loader functions directly
 
     def render_prediction_tab(self):
         """Render the prediction tab in the dashboard."""

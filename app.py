@@ -21,11 +21,11 @@ from dashboard_config import (
     CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES,
     REAL_TIME_SETTINGS, SEMANTIC_SEARCH_SETTINGS, SEMANTIC_SEARCH_MESSAGES
 )
-from phase7.predictive_analytics.dashboard import PredictiveDashboard
-from phase7.user_management.database import UserDatabase
-from phase7.user_management.user_profile import UserProfile
-from phase7.user_management.recommendations import PersonalizedRecommendations
-from phase7.user_management.ui_components import UIComponents
+from src.phase7.predictive_analytics.dashboard import PredictiveDashboard
+from src.phase7.user_management.database import UserDatabase
+from src.phase7.user_management.user_profile import UserProfile
+from src.phase7.user_management.recommendations import PersonalizedRecommendations
+from src.phase7.user_management.ui_components import UIComponents
 
 # Configure page
 st.set_page_config(**PAGE_CONFIG)

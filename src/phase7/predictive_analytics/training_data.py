@@ -17,13 +17,18 @@ import requests
 from dataclasses import dataclass
 
 # Import local modules
-from src.data_loader import DataLoader
-from src.phase7.predictive_analytics.features import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+# Note: Using data_loader functions directly since DataLoader class doesn't exist
+# from data_loader import DataLoader
+from .features import (
     engineer_features,
     select_features,
     prepare_features_for_model
 )
-from src.cache_manager import cache_manager
+from cache_manager import CacheManager
+cache_manager = CacheManager()
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +76,7 @@ class TrainingDataCollector:
             cache_ttl: Cache time-to-live in seconds
         """
         self.cache_ttl = cache_ttl
-        self.data_loader = DataLoader()
+        # self.data_loader = DataLoader()  # DataLoader class doesn't exist, using data_loader functions directly
         self.data_sources = self._initialize_data_sources()
 
     def _initialize_data_sources(self) -> List[DataSourceConfig]:
@@ -111,7 +116,8 @@ class TrainingDataCollector:
 
         return sources
 
-    @cache_manager.cached(ttl=3600)
+    # TODO: Implement proper caching decorator
+    # @cache_manager.cached(ttl=3600)
     def collect_historical_data(
         self,
         technology: str,

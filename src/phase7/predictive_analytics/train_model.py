@@ -23,13 +23,17 @@ import xgboost as xgb
 import lightgbm as lgb
 
 # Import local modules
-from src.phase7.predictive_analytics.training_data import (
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from .training_data import (
     TrainingDataset,
     TrainingDataCollector
 )
-from src.phase7.predictive_analytics.predictor import PredictiveEngine
-from src.phase7.predictive_analytics.features import prepare_features_for_model
-from src.cache_manager import cache_manager
+from .predictor import PredictiveEngine
+from .features import prepare_features_for_model
+from cache_manager import CacheManager
+cache_manager = CacheManager()
 
 logger = logging.getLogger(__name__)
 

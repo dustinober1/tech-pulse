@@ -19,14 +19,17 @@ import logging
 from pathlib import Path
 
 # Import local modules
-from src.phase7.predictive_analytics.features import (
+from .features import (
     extract_time_features,
     extract_technology_features,
     extract_growth_features,
     extract_popularity_features,
     extract_temporal_features
 )
-from src.cache_manager import cache_manager
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from cache_manager import CacheManager
+cache_manager = CacheManager()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -215,7 +218,8 @@ class PredictiveEngine:
             'training_samples': len(X)
         }
 
-    @cache_manager.cached(ttl=cache_ttl)
+    # TODO: Implement proper caching decorator
+    # @cache_manager.cached(ttl=cache_ttl)
     def predict_trend(
         self,
         technology: str,
@@ -285,7 +289,8 @@ class PredictiveEngine:
             trend_direction=trend_direction
         )
 
-    @cache_manager.cached(ttl=cache_ttl//2)
+    # TODO: Implement proper caching decorator
+    # @cache_manager.cached(ttl=cache_ttl//2)
     def detect_anomaly(
         self,
         technology: str,
