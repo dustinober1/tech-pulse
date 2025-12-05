@@ -1,14 +1,11 @@
 {
-  "timestamp": 1764814462.529433,
+  "timestamp": 1764898834.318954,
   "limit": 3,
   "analysis_type": "basic",
-  "stories_count": 3,
+  "stories_count": 2,
   "columns": [
     "title",
-    "score",
-    "descendants",
-    "time",
-    "url"
+    "score"
   ],
   "cache_key": "b308c699a82fbc69fe40f99b3b1dd4d7"
 }

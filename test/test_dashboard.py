@@ -40,18 +40,15 @@ mock_streamlit.session_state = {}
 
 sys.modules['streamlit'] = mock_streamlit
 
-# Mock plotly
-mock_plotly = ModuleType('plotly.express')
-mock_plotly.scatter = Mock(return_value=Mock())
-mock_plotly.bar = Mock(return_value=Mock())
-sys.modules['plotly.express'] = mock_plotly
-
-mock_plotly_go = ModuleType('plotly.graph_objects')
-mock_plotly_go.Figure = Mock()
-sys.modules['plotly.graph_objects'] = mock_plotly_go
-
-# Now import app after mocking
+# Import app first (before mocking plotly) to allow data_loader to import properly
 import app
+
+# Mock plotly after imports for testing
+import plotly.express as px
+import plotly.graph_objects as go
+# Store real modules for data_loader
+real_px = px
+real_go = go
 from dashboard_config import COLORS, DEFAULT_SETTINGS, PAGE_CONFIG
 
 
