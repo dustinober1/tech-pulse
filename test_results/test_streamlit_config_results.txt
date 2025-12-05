@@ -1,15 +1,13 @@
-test_config_toml_exists (test.test_streamlit_config.TestStreamlitConfig.test_config_toml_exists)
-Test that the config.toml file exists in the .streamlit directory. ... ok
-test_config_toml_valid_syntax (test.test_streamlit_config.TestStreamlitConfig.test_config_toml_valid_syntax)
-Test that config.toml has valid TOML syntax and can be parsed. ... ok
-test_secrets_example_exists (test.test_streamlit_config.TestStreamlitConfig.test_secrets_example_exists)
-Test that the secrets.toml.example file exists in the .streamlit directory. ... ok
-test_secrets_toml_in_gitignore (test.test_streamlit_config.TestStreamlitConfig.test_secrets_toml_in_gitignore)
-Test that secrets.toml pattern is in the .gitignore file. ... ok
-test_streamlit_directory_exists (test.test_streamlit_config.TestStreamlitConfig.test_streamlit_directory_exists)
-Test that the .streamlit directory exists in the project root. ... ok
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.0.1, pluggy-1.6.0 -- /Users/dustinober/tech-pulse/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/dustinober/tech-pulse
+collecting ... collected 5 items
 
-----------------------------------------------------------------------
-Ran 5 tests in 0.001s
+test/test_streamlit_config.py::TestStreamlitConfig::test_config_toml_exists PASSED [ 20%]
+test/test_streamlit_config.py::TestStreamlitConfig::test_config_toml_valid_syntax PASSED [ 40%]
+test/test_streamlit_config.py::TestStreamlitConfig::test_secrets_example_exists PASSED [ 60%]
+test/test_streamlit_config.py::TestStreamlitConfig::test_secrets_toml_in_gitignore PASSED [ 80%]
+test/test_streamlit_config.py::TestStreamlitConfig::test_streamlit_directory_exists PASSED [100%]
 
-OK
+============================== 5 passed in 0.01s ===============================
