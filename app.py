@@ -27,12 +27,17 @@ def initialize_session_state():
         st.session_state.data = None
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = None
-    if 'auto_refresh' not in st.session_state:
-        st.session_state.auto_refresh = DEFAULT_SETTINGS['auto_refresh']
+    if 'real_time_mode' not in st.session_state:
+        st.session_state.real_time_mode = False
+    if 'last_update_time' not in st.session_state:
+        st.session_state.last_update_time = None
     if 'stories_count' not in st.session_state:
         st.session_state.stories_count = DEFAULT_SETTINGS['default_stories']
-    if 'refresh_countdown' not in st.session_state:
-        st.session_state.refresh_countdown = DEFAULT_SETTINGS['refresh_interval']
+    # Remove old auto_refresh and refresh_countdown if they exist
+    if 'auto_refresh' in st.session_state:
+        del st.session_state.auto_refresh
+    if 'refresh_countdown' in st.session_state:
+        del st.session_state.refresh_countdown
 
 def create_header():
     """Create dashboard header"""
@@ -72,17 +77,25 @@ def create_sidebar():
         if st.button("🔄 Refresh Data", type="primary", use_container_width=True):
             refresh_data()
 
-        # Auto-refresh option
-        auto_refresh = st.checkbox(
-            "Auto Refresh",
-            value=st.session_state.auto_refresh,
-            help="Automatically refresh data every 5 minutes"
+        # Real-time mode toggle
+        real_time_mode = st.toggle(
+            "Enable Real-Time Mode",
+            value=st.session_state.real_time_mode,
+            help="Automatically refresh data every 60 seconds for live updates"
         )
-        st.session_state.auto_refresh = auto_refresh
+        st.session_state.real_time_mode = real_time_mode
+
+        # Visual indicator when real-time mode is active
+        if st.session_state.real_time_mode:
+            st.success("🟢 Real-time mode is active")
 
         # Last refresh info
         if st.session_state.last_refresh:
-            st.info(f"Last refreshed: {st.session_state.last_refresh.strftime('%H:%M:%S')}")
+            time_str = st.session_state.last_refresh.strftime('%H:%M:%S')
+            if st.session_state.real_time_mode:
+                st.info(f"Last refreshed: {time_str}\nAuto-refreshing every 60 seconds")
+            else:
+                st.info(f"Last refreshed: {time_str}")
 
         st.markdown("---")
 
@@ -298,6 +311,7 @@ def refresh_data():
         # Store in session state
         st.session_state.data = df
         st.session_state.last_refresh = datetime.now()
+        st.session_state.last_update_time = datetime.now()
 
         # Show success message
         st.success(SUCCESS_MESSAGES['data_loaded'])
@@ -337,13 +351,14 @@ def export_data(format_type):
         st.error(f"Error exporting data: {str(e)}")
 
 def check_auto_refresh():
-    """Check if auto-refresh should trigger"""
-    if not st.session_state.auto_refresh:
+    """Check if real-time auto-refresh should trigger"""
+    if not st.session_state.real_time_mode:
         return
 
-    if st.session_state.last_refresh:
-        time_since_refresh = (datetime.now() - st.session_state.last_refresh).seconds
-        if time_since_refresh >= DEFAULT_SETTINGS['refresh_interval']:
+    if st.session_state.last_update_time:
+        time_since_refresh = (datetime.now() - st.session_state.last_update_time).seconds
+        # Refresh every 60 seconds in real-time mode
+        if time_since_refresh >= 60:
             refresh_data()
 
 def main():
