@@ -1,0 +1,52 @@
+test_verify_deployment_404_error (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_404_error)
+Test deployment verification with 404 error. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR - ✗ Deployment check failed!
+2025-12-04 20:26:05 - ERROR -   Status Code: 404
+2025-12-04 20:26:05 - ERROR -   URL: https://test-app.streamlit.app
+ok
+test_verify_deployment_500_error (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_500_error)
+Test deployment verification with 500 error. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR - ✗ Deployment check failed!
+2025-12-04 20:26:05 - ERROR -   Status Code: 500
+2025-12-04 20:26:05 - ERROR -   URL: https://test-app.streamlit.app
+ok
+test_verify_deployment_connection_error (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_connection_error)
+Test deployment verification with connection error. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR - ✗ Connection error: Unable to connect to https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR -   Details: Failed to connect
+ok
+test_verify_deployment_empty_url (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_empty_url)
+Test deployment verification with empty URL. ... 2025-12-04 20:26:05 - ERROR - URL cannot be empty
+ok
+test_verify_deployment_generic_request_exception (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_generic_request_exception)
+Test deployment verification with generic request exception. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR - ✗ Request error occurred
+2025-12-04 20:26:05 - ERROR -   URL: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR -   Details: Generic error
+ok
+test_verify_deployment_invalid_url (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_invalid_url)
+Test deployment verification with invalid URL. ... 2025-12-04 20:26:05 - ERROR - Invalid URL format: not-a-valid-url. URL must start with http:// or https://
+ok
+test_verify_deployment_redirect_success (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_redirect_success)
+Test deployment verification with redirect. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: http://test-app.streamlit.app
+2025-12-04 20:26:05 - INFO - ✓ Deployment verified successfully!
+2025-12-04 20:26:05 - INFO -   Status Code: 200
+2025-12-04 20:26:05 - INFO -   URL: http://test-app.streamlit.app
+ok
+test_verify_deployment_success (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_success)
+Test successful deployment verification. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: https://test-app.streamlit.app
+2025-12-04 20:26:05 - INFO - ✓ Deployment verified successfully!
+2025-12-04 20:26:05 - INFO -   Status Code: 200
+2025-12-04 20:26:05 - INFO -   URL: https://test-app.streamlit.app
+ok
+test_verify_deployment_timeout (test.test_verify_deployment.TestVerifyDeployment.test_verify_deployment_timeout)
+Test deployment verification with timeout. ... 2025-12-04 20:26:05 - INFO - Verifying deployment at: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR - ✗ Timeout error: Request timed out after 30 seconds
+2025-12-04 20:26:05 - ERROR -   URL: https://test-app.streamlit.app
+2025-12-04 20:26:05 - ERROR -   Details: Request timed out
+ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.003s
+
+OK
