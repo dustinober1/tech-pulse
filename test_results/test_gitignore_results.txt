@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-9.0.1, pluggy-1.6.0 -- /Users/dustinober/tech-pulse/venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/dustinober/tech-pulse
+collecting ... collected 6 items
+
+test/test_gitignore.py::TestGitignore::test_cache_directory_excluded PASSED [ 16%]
+test/test_gitignore.py::TestGitignore::test_ds_store_excluded PASSED     [ 33%]
+test/test_gitignore.py::TestGitignore::test_env_file_excluded PASSED     [ 50%]
+test/test_gitignore.py::TestGitignore::test_gitignore_exists PASSED      [ 66%]
+test/test_gitignore.py::TestGitignore::test_pycache_excluded PASSED      [ 83%]
+test/test_gitignore.py::TestGitignore::test_venv_excluded PASSED         [100%]
+
+============================== 6 passed in 0.01s ===============================
