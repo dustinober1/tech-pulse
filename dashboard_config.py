@@ -81,7 +81,8 @@ HELP_TEXT = {
     "real_time_mode": "Real-time mode automatically refreshes data every 60 seconds to provide the latest Hacker News stories and insights.",
     "real_time_enable": "Enable real-time mode to activate automatic 60-second refresh intervals and live data updates.",
     "refresh_interval": "The 60-second refresh interval means the dashboard will automatically fetch and analyze new Hacker News stories every minute to keep your insights current.",
-    "troubleshooting": "If real-time updates aren't working: check your internet connection, ensure the Hacker News API is accessible, and verify that your browser supports automatic refresh."
+    "troubleshooting": "If real-time updates aren't working: check your internet connection, ensure the Hacker News API is accessible, and verify that your browser supports automatic refresh.",
+    "semantic_search": "Semantic search uses machine learning embeddings to find stories with similar meanings to your query. It understands context and concepts, not just keywords."
 }
 
 # Error messages

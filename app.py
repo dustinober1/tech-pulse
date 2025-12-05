@@ -11,11 +11,11 @@ from datetime import datetime, timedelta
 import time
 
 # Import our custom modules
-from data_loader import fetch_hn_data, analyze_sentiment, get_topics
+from data_loader import fetch_hn_data, analyze_sentiment, get_topics, setup_vector_db, semantic_search
 from dashboard_config import (
     PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS,
     CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES,
-    REAL_TIME_SETTINGS
+    REAL_TIME_SETTINGS, SEMANTIC_SEARCH_SETTINGS, SEMANTIC_SEARCH_MESSAGES
 )
 
 # Configure page
@@ -34,6 +34,13 @@ def initialize_session_state():
         st.session_state.last_update_time = None
     if 'stories_count' not in st.session_state:
         st.session_state.stories_count = DEFAULT_SETTINGS['default_stories']
+    # Vector DB session state
+    if 'vector_collection' not in st.session_state:
+        st.session_state.vector_collection = None
+    if 'vector_db_initialized' not in st.session_state:
+        st.session_state.vector_db_initialized = False
+    if 'search_results' not in st.session_state:
+        st.session_state.search_results = None
     # Remove old auto_refresh and refresh_countdown if they exist
     if 'auto_refresh' in st.session_state:
         del st.session_state.auto_refresh
@@ -141,6 +148,9 @@ def create_sidebar():
 
             **Metrics:**
             {HELP_TEXT['metrics']}
+
+            **Semantic Search:**
+            {HELP_TEXT['semantic_search']}
             """)
 
 def create_metrics_row(df):
@@ -261,6 +271,154 @@ def create_charts_row(df):
         else:
             st.info("Topic data not available. Run topic analysis first.")
 
+def create_semantic_search_section(df):
+    """Create semantic search interface section"""
+    if df is None or df.empty:
+        return
+
+    st.markdown("---")
+
+    # Check if vector DB is initialized
+    if not st.session_state.vector_db_initialized or st.session_state.vector_collection is None:
+        # Show initialization button
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.info("🔍 Semantic search is available. Initialize the search engine to find stories by meaning.")
+        with col2:
+            if st.button("🚀 Initialize Search", type="primary", use_container_width=True):
+                initialize_vector_db()
+        return
+
+    # Vector DB is initialized, show search interface
+    st.markdown("### 🔍 Semantic Search")
+    st.markdown("Find stories by meaning, not just keywords. Enter a query to discover semantically similar content.")
+
+    # Search input
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        search_query = st.text_input(
+            "Search for stories:",
+            placeholder="e.g., 'artificial intelligence', 'startup funding', 'machine learning'",
+            help=SEMANTIC_SEARCH_MESSAGES['help'],
+            key="semantic_search_query"
+        )
+
+    with col2:
+        st.write("")  # Add spacing
+        st.write("")  # Add spacing
+        search_button = st.button("🔍 Search", type="primary", use_container_width=True)
+
+    # Perform search when button is clicked or Enter is pressed
+    if search_button or (search_query and search_query != st.session_state.get('last_search_query', '')):
+        if search_query and len(search_query.strip()) >= SEMANTIC_SEARCH_SETTINGS['min_query_length']:
+            perform_semantic_search(search_query.strip())
+            st.session_state.last_search_query = search_query
+        elif search_query:
+            st.warning(f"Query must be at least {SEMANTIC_SEARCH_SETTINGS['min_query_length']} characters long.")
+
+    # Display search results if they exist
+    if st.session_state.search_results:
+        display_search_results(st.session_state.search_results)
+
+def display_search_results(results):
+    """Display search results in expandable sections"""
+    if not results:
+        st.info(SEMANTIC_SEARCH_MESSAGES['no_results'])
+        return
+
+    st.markdown(f"#### Found {len(results)} relevant stories")
+
+    for i, result in enumerate(results, 1):
+        with st.expander(f"{i}. {result['title'][:80]}{'...' if len(result['title']) > 80 else ''}", expanded=i <= 3):
+            # Main content columns
+            col1, col2, col3 = st.columns([3, 1, 1])
+
+            with col1:
+                # Title and URL
+                title = result['title']
+                url = result['metadata'].get('url', '')
+
+                if url:
+                    st.markdown(f"**[{title}]({url})**")
+                else:
+                    st.markdown(f"**{title}**")
+
+                # Metadata info
+                metadata = result['metadata']
+                st.caption(f"Score: {metadata.get('score', 0)} | "
+                          f"Comments: {metadata.get('descendants', 0)} | "
+                          f"Sentiment: {metadata.get('sentiment_label', 'N/A')} | "
+                          f"Topic: {metadata.get('topic_keyword', 'N/A').replace('_', ' ').title()}")
+
+            with col2:
+                # Similarity score
+                similarity_pct = result['similarity_score'] * 100
+                st.metric("Similarity", f"{similarity_pct:.1f}%")
+
+            with col3:
+                # Ranking
+                st.metric("Rank", f"#{result['rank']}")
+
+            # Additional details
+            with st.expander("📊 Search Details", expanded=False):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write(f"**Similarity Score:** {result['similarity_score']:.3f}")
+                    st.write(f"**Distance:** {result['distance']:.3f}")
+                    if 'time' in metadata:
+                        time_str = pd.to_datetime(metadata['time']).strftime('%Y-%m-%d %H:%M')
+                        st.write(f"**Posted:** {time_str}")
+
+                with col2:
+                    st.write(f"**Explanation:** {result['explanation']}")
+                    st.write(f"**Collection ID:** {result['metadata'].get('index', 'N/A')}")
+
+def initialize_vector_db():
+    """Initialize vector database for semantic search"""
+    if st.session_state.data is None or st.session_state.data.empty:
+        st.error("No data available for search initialization. Please refresh data first.")
+        return
+
+    try:
+        with st.spinner(SEMANTIC_SEARCH_MESSAGES['initializing']):
+            # Set up vector database
+            collection = setup_vector_db(st.session_state.data)
+
+            if collection is not None:
+                st.session_state.vector_collection = collection
+                st.session_state.vector_db_initialized = True
+                st.success(SUCCESS_MESSAGES['semantic_search_initialized'])
+                st.rerun()
+            else:
+                st.error(ERROR_MESSAGES['semantic_search_initialization_error'])
+
+    except Exception as e:
+        st.error(f"Error initializing semantic search: {str(e)}")
+
+def perform_semantic_search(query):
+    """Perform semantic search and store results"""
+    try:
+        with st.spinner(SEMANTIC_SEARCH_MESSAGES['searching']):
+            # Perform search using the vector collection
+            results = semantic_search(
+                collection=st.session_state.vector_collection,
+                query=query,
+                max_results=SEMANTIC_SEARCH_SETTINGS['max_results'],
+                similarity_threshold=SEMANTIC_SEARCH_SETTINGS['similarity_threshold']
+            )
+
+            # Store results in session state
+            st.session_state.search_results = results
+
+            if results:
+                st.success(f"Found {len(results)} relevant stories for '{query}'")
+            else:
+                st.info(f"No results found for '{query}'. Try different keywords.")
+
+    except Exception as e:
+        st.error(f"Error during search: {str(e)}")
+        st.session_state.search_results = None
+
 def create_data_table(df):
     """Create expandable data table"""
     if df is None or df.empty:
@@ -313,6 +471,13 @@ def refresh_data():
         st.session_state.data = df
         st.session_state.last_refresh = datetime.now()
         st.session_state.last_update_time = datetime.now()
+
+        # Clear vector DB state to force re-initialization if needed
+        # Only clear if not in real-time mode to preserve performance
+        if not st.session_state.real_time_mode:
+            st.session_state.vector_db_initialized = False
+            st.session_state.vector_collection = None
+            st.session_state.search_results = None
 
         # Show success message
         st.success(SUCCESS_MESSAGES['data_loaded'])
@@ -386,6 +551,9 @@ def create_content_in_placeholder(placeholder):
         if st.session_state.data is not None:
             # Create metrics row
             create_metrics_row(st.session_state.data)
+
+            # Create semantic search section after metrics
+            create_semantic_search_section(st.session_state.data)
 
             st.markdown("---")
 
@@ -461,6 +629,9 @@ def main():
         if st.session_state.data is not None:
             # Create metrics row
             create_metrics_row(st.session_state.data)
+
+            # Create semantic search section after metrics
+            create_semantic_search_section(st.session_state.data)
 
             st.markdown("---")
 

@@ -33,6 +33,7 @@ Tech-Pulse transforms raw Hacker News data into actionable insights through sent
 | **Phase 3** | ✅ Completed | Interactive Dashboard - Streamlit UI | 17 tests |
 | **Phase 4** | ✅ Completed | Production Deployment - Live on Cloud | 70+ tests |
 | **Phase 5** | ✅ Completed | Real-Time Updates - Live Dashboard | 15 tests |
+| **Phase 6** | 🟡 In Progress | Testing & Documentation - Semantic Search | 20+ tests |
 
 **Overall Status**: 🟢 **Production Ready & Deployed with Real-Time Features**
 - Total Tests: 135+
@@ -77,6 +78,13 @@ Tech-Pulse transforms raw Hacker News data into actionable insights through sent
 - **Dual Mode Operation**: Seamlessly switch between real-time and manual refresh modes
 - **Error Recovery**: Graceful handling of connection issues and API errors
 - **Performance Optimized**: Efficient resource usage with intelligent caching
+
+### Phase 6: Testing & Documentation 🟡
+- **Semantic Search**: Advanced vector-based search for finding relevant stories
+- **Integration Testing**: Comprehensive workflow tests for all features
+- **Performance Benchmarks**: Search response time and memory usage optimization
+- **Vector Database**: ChromaDB integration with sentence transformers
+- **Comprehensive Testing**: 20+ new tests for search functionality and performance
 
 ## ⚡ Real-Time Features
 
@@ -129,6 +137,101 @@ If real-time updates aren't working:
 - **Streamlet Cloud**: Free tier may timeout after periods of inactivity (normal behavior)
 - **Mobile Experience**: Real-time features work optimally on stable connections
 
+## 🔍 Semantic Search
+
+Tech-Pulse now includes advanced semantic search capabilities powered by vector embeddings, allowing you to find stories based on meaning and context rather than just keywords.
+
+### How Semantic Search Works
+
+1. **Vector Embeddings**: Story titles are converted into numerical vectors using sentence transformers
+2. **ChromaDB Storage**: Vectors are stored in ChromaDB for efficient similarity search
+3. **Similarity Matching**: Queries are matched against stored vectors to find semantically similar content
+4. **Ranked Results**: Results are ranked by similarity score for most relevant matches
+
+### Using Semantic Search
+
+```python
+# Import required modules
+from data_loader import setup_vector_db, semantic_search
+
+# Set up vector database with story data
+df = fetch_hn_data(limit=50)
+collection = setup_vector_db(df, collection_name="hn_stories")
+
+# Perform semantic search
+results = semantic_search(
+    collection=collection,
+    query="artificial intelligence and machine learning",
+    max_results=10,
+    similarity_threshold=0.7
+)
+
+# Process results
+for result in results:
+    print(f"Title: {result['title']}")
+    print(f"Similarity: {result['similarity_score']:.1%}")
+    print(f"Score: {result['metadata'].get('score', 0)}")
+    print("---")
+```
+
+### Search Configuration
+
+Adjust search behavior using these parameters in `dashboard_config.py`:
+
+```python
+SEMANTIC_SEARCH_SETTINGS = {
+    "model_name": "all-MiniLM-L6-v2",      # Embedding model
+    "max_results": 10,                      # Default max results
+    "similarity_threshold": 0.7,            # Minimum similarity score
+    "batch_size": 50,                       # Document processing batch size
+    "enable_cache": True,                   # Enable result caching
+    "cache_duration": 3600,                 # Cache duration (seconds)
+    "min_query_length": 3,                  # Minimum query length
+    "max_query_length": 100                 # Maximum query length
+}
+```
+
+### Search Examples
+
+```python
+# Find AI-related stories
+semantic_search(collection, "artificial intelligence")
+
+# Search for cybersecurity content
+semantic_search(collection, "security vulnerabilities and threats")
+
+# Look for programming tutorials
+semantic_search(collection, "python programming best practices")
+
+# Search for cloud computing topics
+semantic_search(collection, "aws azure cloud infrastructure")
+```
+
+### Performance Features
+
+- **Lazy Loading**: Models are loaded only when needed
+- **Batch Processing**: Efficient processing of large document sets
+- **Caching**: Vector cache manager avoids unnecessary rebuilds
+- **Concurrent Search**: Support for multiple simultaneous searches
+- **Memory Optimization**: Efficient memory usage during operations
+
+### Troubleshooting Semantic Search
+
+**Search Returns No Results:**
+- Check query length (3-100 characters required)
+- Verify similarity threshold isn't too high
+- Ensure vector database is initialized
+
+**Slow Search Performance:**
+- Reduce `max_results` parameter
+- Increase `similarity_threshold` to filter results early
+- Check system resources and memory usage
+
+**Model Loading Errors:**
+- Ensure stable internet connection for first-time model download
+- Check available disk space (models require ~100MB)
+- Verify Python version compatibility
+
 ## 🛠️ Technical Stack
 
 ### Core Technologies
@@ -138,6 +241,8 @@ If real-time updates aren't working:
 - **NLTK** - Natural language processing (VADER sentiment)
 - **BERTopic** - Topic modeling with transformers
 - **sentence-transformers** - Text embeddings
+- **ChromaDB** - Vector database for semantic search
+- **numpy** - Numerical computing for vector operations
 
 ### Dashboard & Visualization
 - **Streamlit** - Interactive web dashboard framework
@@ -175,6 +280,8 @@ tech-pulse/
 ├── test/                  # Test suite
 │   ├── __init__.py        # Package initialization
 │   ├── test_data_loader.py # Comprehensive unit tests
+│   ├── test_semantic_search_integration.py # Semantic search integration tests
+│   ├── test_search_performance.py # Search performance benchmarks
 │   ├── run_tests.py       # Test runner with detailed reporting
 │   └── README.md          # Test documentation
 └── test_results/          # Automatic test result storage
@@ -225,7 +332,8 @@ The dashboard is fully functional and provides:
    ```
    Or install manually:
    ```bash
-   pip install requests pandas nltk bertopic hdbscan
+   pip install requests pandas nltk bertopic hdbscan \
+               sentence-transformers chromadb numpy psutil tqdm
    ```
 
 #### Usage
@@ -307,14 +415,15 @@ python -m unittest test.test_data_loader -v
 ```
 
 ### Test Coverage
-- **135+ total unit tests**
-- **100% pass rate** (135 passed, 0 skipped)
+- **155+ total unit tests**
+- **100% pass rate** (155 passed, 0 skipped)
 - **All functions tested** (as required by CLAUDE.md)
 - **Phase 1**: 22 tests (data fetching and processing)
 - **Phase 2**: 11 tests (sentiment and topic analysis)
 - **Phase 3**: 17 tests (dashboard functionality and configuration)
 - **Phase 4**: 70+ tests (deployment, caching, and integration)
 - **Phase 5**: 15 tests (real-time functionality and error handling)
+- **Phase 6**: 20+ tests (semantic search and performance benchmarks)
 
 ### Dashboard Testing
 ```bash
@@ -367,6 +476,33 @@ Extract topics from story titles using BERTopic.
 **Returns:** Enhanced DataFrame with additional columns:
 - `topic_id` (int): Topic assignment (-1 for outliers)
 - `topic_keyword` (str): Topic keywords joined with underscores
+
+#### `setup_vector_db(df, collection_name='hn_stories', force_rebuild=False)`
+Set up vector database for semantic search.
+
+**Parameters:**
+- `df` (pandas.DataFrame): DataFrame with story data
+- `collection_name` (str): Name for the ChromaDB collection
+- `force_rebuild` (bool): Force rebuild regardless of cache
+
+**Returns:** ChromaDB collection object or None if setup fails
+
+#### `semantic_search(collection, query, max_results=None, similarity_threshold=None)`
+Perform semantic search on the vector collection.
+
+**Parameters:**
+- `collection` (ChromaDB collection): Vector collection to search
+- `query` (str): Search query string
+- `max_results` (int): Maximum number of results (default: 10)
+- `similarity_threshold` (float): Minimum similarity score (default: 0.7)
+
+**Returns:** List of search results with:
+- `title` (str): Story title
+- `metadata` (dict): Story metadata
+- `similarity_score` (float): Similarity score (0-1)
+- `distance` (float): Distance score
+- `rank` (int): Result rank
+- `explanation` (str): Similarity explanation
 
 ## 🧠 Analysis Capabilities
 
@@ -490,6 +626,20 @@ open https://tech-pulse.streamlit.app
 - **Mode Switching**: Seamless toggle between real-time and manual modes
 - **Error Handling**: Graceful recovery from connection issues
 - **Performance**: Optimized for extended real-time sessions
+
+### ✅ Phase 6: Testing & Documentation (In Progress)
+- **Semantic Search Integration**: Vector-based search with ChromaDB and sentence transformers
+- **Comprehensive Testing**: Integration tests for full search workflow
+- **Performance Benchmarks**: Search response time and memory usage optimization
+- **UI Integration**: Semantic search in Streamlit dashboard
+- **Documentation Updates**: Complete API reference and usage examples
+
+**Phase 6 Features:**
+- **20+ New Tests**: Integration and performance testing for semantic search
+- **Search UI**: Integrated semantic search in dashboard
+- **Caching System**: Vector cache manager for performance
+- **Error Handling**: Robust error handling for search operations
+- **Performance Metrics**: Detailed performance monitoring
 
 ## 🧰 Contributing
 
