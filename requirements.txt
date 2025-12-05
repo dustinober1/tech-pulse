@@ -17,3 +17,9 @@ feedparser>=6.0.10
 python-dateutil>=2.8.2
 tweepy>=4.14.0
 pydantic>=2.0.0
+
+# Phase 8: Executive Briefing PDF Generation Dependencies
+fpdf2>=2.7.0
+reportlab>=4.0.0
+Pillow>=10.0.0
+openai>=1.0.0

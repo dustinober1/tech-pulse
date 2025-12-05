@@ -832,3 +832,192 @@ def get_multi_source_trends(df: pd.DataFrame, hours: int = 24) -> Dict[str, Any]
         trends['avg_sentiment_by_source'][source] = source_df['sentiment'].mean()
 
     return trends
+
+
+# ============================================================================
+# PDF Generation Functions (Phase 8: Executive Briefing)
+# ============================================================================
+
+def generate_executive_briefing(stories_count=30, include_charts=True, openai_api_key=None):
+    """
+    Generate executive briefing PDF
+
+    Args:
+        stories_count (int): Number of stories to include in analysis
+        include_charts (bool): Whether to include charts in the PDF
+        openai_api_key (str): OpenAI API key for AI summaries (optional)
+
+    Returns:
+        bytes: PDF file as bytes
+    """
+    try:
+        from src.pdf_generator.report_builder import ExecutiveBriefingBuilder
+
+        builder = ExecutiveBriefingBuilder(openai_api_key)
+        pdf_bytes = builder.generate_briefing(
+            stories_count=stories_count,
+            include_charts=include_charts,
+            include_ai_summary=bool(openai_api_key)
+        )
+
+        return pdf_bytes
+
+    except ImportError as e:
+        # Fallback if PDF modules not available
+        raise ImportError(f"PDF generation modules not available: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to generate executive briefing: {e}")
+
+
+def create_sample_report(output_path='tech_pulse_sample.pdf'):
+    """
+    Create a sample executive briefing for testing
+
+    Args:
+        output_path (str): Path to save the sample PDF
+
+    Returns:
+        str: Path to the created PDF file
+    """
+    try:
+        from src.pdf_generator.report_builder import create_sample_briefing
+
+        pdf_path = create_sample_briefing(output_path)
+        return pdf_path
+
+    except ImportError as e:
+        raise ImportError(f"PDF generation modules not available: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to create sample report: {e}")
+
+
+def validate_pdf_generation_requirements():
+    """
+    Validate if all requirements for PDF generation are met
+
+    Returns:
+        dict: Validation results with requirements status
+    """
+    validation_results = {
+        'is_valid': True,
+        'missing_modules': [],
+        'available_modules': [],
+        'recommendations': []
+    }
+
+    # Check required modules
+    required_modules = [
+        ('fpdf2', 'PDF generation library'),
+        ('reportlab', 'Advanced PDF formatting'),
+        ('Pillow', 'Image processing for charts'),
+        ('openai', 'AI-powered summaries (optional)')
+    ]
+
+    for module_name, description in required_modules:
+        try:
+            __import__(module_name)
+            validation_results['available_modules'].append(f"{module_name}: {description}")
+        except ImportError:
+            validation_results['missing_modules'].append(f"{module_name}: {description}")
+            validation_results['is_valid'] = False
+
+    # Check internal modules
+    internal_modules = [
+        ('src.pdf_generator.pdf_builder', 'PDF builder module'),
+        ('src.pdf_generator.ai_summarizer', 'AI summarizer module'),
+        ('src.pdf_generator.chart_exporter', 'Chart exporter module'),
+        ('src.pdf_generator.report_builder', 'Report builder module')
+    ]
+
+    for module_name, description in internal_modules:
+        try:
+            __import__(module_name)
+            validation_results['available_modules'].append(f"{module_name}: {description}")
+        except ImportError as e:
+            validation_results['missing_modules'].append(f"{module_name}: {description} - {str(e)}")
+            validation_results['is_valid'] = False
+
+    # Generate recommendations
+    if validation_results['missing_modules']:
+        validation_results['recommendations'].append(
+            "Run: pip install -r requirements.txt to install missing dependencies"
+        )
+
+    if 'fpdf2' in [mod.split(':')[0] for mod in validation_results['missing_modules']]:
+        validation_results['recommendations'].append(
+            "Install PDF libraries: pip install fpdf2 reportlab Pillow"
+        )
+
+    if 'openai' in [mod.split(':')[0] for mod in validation_results['missing_modules']]:
+        validation_results['recommendations'].append(
+            "OpenAI library is optional for AI summaries: pip install openai"
+        )
+
+    return validation_results
+
+
+def get_pdf_generation_status():
+    """
+    Get current status of PDF generation capabilities
+
+    Returns:
+        dict: Status information
+    """
+    validation = validate_pdf_generation_requirements()
+
+    return {
+        'status': 'ready' if validation['is_valid'] else 'incomplete',
+        'can_generate_basic': ('reportlab' in [mod.split(':')[0] for mod in validation['available_modules']]),
+        'can_generate_charts': ('plotly' in [mod.split(':')[0] for mod in validation['available_modules']]),
+        'has_ai_summaries': ('openai' in [mod.split(':')[0] for mod in validation['available_modules']]),
+        'missing_count': len(validation['missing_modules']),
+        'available_count': len(validation['available_modules']),
+        'validation': validation
+    }
+
+
+def estimate_pdf_generation_time(stories_count=30, include_charts=True):
+    """
+    Estimate PDF generation time based on content size
+
+    Args:
+        stories_count (int): Number of stories to process
+        include_charts (bool): Whether charts will be included
+
+    Returns:
+        dict: Time estimation and recommendations
+    """
+    base_time = 2.0  # Base setup time in seconds
+    story_processing_time = 0.1  # Time per story
+    chart_generation_time = 3.0 if include_charts else 0.0  # Time for charts
+    pdf_rendering_time = 1.0  # Base PDF rendering time
+
+    estimated_seconds = (
+        base_time +
+        (stories_count * story_processing_time) +
+        chart_generation_time +
+        pdf_rendering_time
+    )
+
+    # Add buffer for potential issues
+    estimated_seconds *= 1.5
+
+    # Generate recommendations
+    recommendations = []
+    if stories_count > 50:
+        recommendations.append("Consider reducing story count for faster generation")
+    if include_charts and estimated_seconds > 30:
+        recommendations.append("Disable charts for faster generation with large datasets")
+
+    return {
+        'estimated_seconds': round(estimated_seconds, 1),
+        'estimated_minutes': round(estimated_seconds / 60, 1),
+        'is_fast': estimated_seconds < 10,
+        'recommendations': recommendations,
+        'breakdown': {
+            'setup_time': base_time,
+            'story_processing': stories_count * story_processing_time,
+            'chart_generation': chart_generation_time,
+            'pdf_rendering': pdf_rendering_time
+        }
+    }
