@@ -30,7 +30,14 @@ RUN python -c "import nltk; nltk.download('vader_lexicon'); nltk.download('punkt
 # Copy application files
 COPY data_loader.py .
 COPY dashboard_config.py .
+COPY cache_manager.py .
 COPY app.py .
+
+# Copy Phase 9 modules
+COPY src/phase9/ ./src/phase9/
+COPY src/phase8/ ./src/phase8/
+COPY src/realtime/ ./src/realtime/
+COPY src/pdf_generator/ ./src/pdf_generator/
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' streamlit
