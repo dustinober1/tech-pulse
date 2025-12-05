@@ -1,1 +1,49 @@
-__pycache__
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE and Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+secrets.toml
+
+# OS Files
+.DS_Store
+.DS_Store?
+Thumbs.db
+
+# Application Cache
+cache/
+*.parquet
+*.cache
+
+# Test artifacts (but keep test_results structure)
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/
