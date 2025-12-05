@@ -44,6 +44,14 @@ Tech-Pulse transforms raw Hacker News data into actionable insights through sent
 
 ## 🎯 Features
 
+### 🌟 Accessibility & User Experience (Latest)
+- **High Contrast Mode**: Improved color contrast for better visibility
+- **Keyboard Navigation**: Full keyboard support with focus indicators
+- **Screen Reader Support**: Alt text and ARIA labels for all interactive elements
+- **Clear Error Messages**: User-friendly error messages with actionable guidance
+- **First-Time Onboarding**: Interactive welcome dialog for new users
+- **Simplified Terminology**: Technical terms explained in plain language
+
 ### Phase 1: Data Pipeline ✅
 - Fetch top stories from Hacker News API
 - Extract story metadata (title, score, comments, timestamp, URL)

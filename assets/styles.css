@@ -1,0 +1,358 @@
+/* Tech-Pulse Dashboard Accessibility Styles */
+
+/* High Contrast Colors */
+:root {
+    --primary-text: #1a1a1a;
+    --secondary-text: #4a4a4a;
+    --background: #ffffff;
+    --surface: #f8f9fa;
+    --border: #dee2e6;
+    --positive-high-contrast: #006600;
+    --negative-high-contrast: #cc0000;
+    --neutral-high-contrast: #666666;
+    --focus-outline: #0066cc;
+    --link-color: #0066cc;
+    --link-hover: #004080;
+}
+
+/* Base styles for better contrast */
+.stApp {
+    background-color: var(--background) !important;
+    color: var(--primary-text) !important;
+}
+
+/* Text contrast improvements */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary-text) !important;
+}
+
+p, span, div, label {
+    color: var(--primary-text) !important;
+}
+
+/* Metrics improvements */
+[data-testid="metric-container"] {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+}
+
+[data-testid="metric-value"] {
+    color: var(--primary-text) !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="metric-label"] {
+    color: var(--secondary-text) !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+}
+
+/* Sentiment indicators with high contrast */
+.sentiment-positive {
+    color: var(--positive-high-contrast) !important;
+    font-weight: 600 !important;
+}
+
+.sentiment-negative {
+    color: var(--negative-high-contrast) !important;
+    font-weight: 600 !important;
+}
+
+.sentiment-neutral {
+    color: var(--neutral-high-contrast) !important;
+    font-weight: 600 !important;
+}
+
+/* Delta colors for metrics */
+[data-testid="deltaPositive"] {
+    color: var(--positive-high-contrast) !important;
+}
+
+[data-testid="deltaNegative"] {
+    color: var(--negative-high-contrast) !important;
+}
+
+[data-testid="deltaNeutral"] {
+    color: var(--neutral-high-contrast) !important;
+}
+
+/* Keyboard navigation improvements */
+button, .kbtn, [role="button"], input, select, textarea {
+    border: 2px solid transparent !important;
+}
+
+button:focus, .kbtn:focus, [role="button"]:focus,
+input:focus, select:focus, textarea:focus {
+    outline: 3px solid var(--focus-outline) !important;
+    outline-offset: 2px !important;
+    border-color: var(--focus-outline) !important;
+}
+
+/* Interactive elements */
+a {
+    color: var(--link-color) !important;
+    text-decoration: underline !important;
+}
+
+a:hover {
+    color: var(--link-hover) !important;
+}
+
+a:focus {
+    outline: 3px solid var(--focus-outline) !important;
+    outline-offset: 2px !important;
+}
+
+/* Data table improvements */
+.dataframe {
+    border: 2px solid var(--border) !important;
+}
+
+.dataframe th {
+    background-color: var(--surface) !important;
+    color: var(--primary-text) !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid var(--border) !important;
+}
+
+.dataframe td {
+    border-bottom: 1px solid var(--border) !important;
+    color: var(--primary-text) !important;
+}
+
+.dataframe tr:hover {
+    background-color: var(--surface) !important;
+}
+
+/* Error messages */
+.element-container .stAlert {
+    border: 2px solid var(--negative-high-contrast) !important;
+    background-color: #fff5f5 !important;
+}
+
+.element-container .stAlert[data-baseweb="notification"][type="error"] {
+    color: var(--negative-high-contrast) !important;
+}
+
+/* Success messages */
+.element-container .stAlert[data-baseweb="notification"][type="success"] {
+    background-color: #f0fff4 !important;
+    border-color: var(--positive-high-contrast) !important;
+    color: var(--positive-high-contrast) !important;
+}
+
+/* Warning messages */
+.element-container .stAlert[data-baseweb="notification"][type="warning"] {
+    background-color: #fffdf0 !important;
+    border-color: #cc8800 !important;
+    color: #665200 !important;
+}
+
+/* Info messages */
+.element-container .stAlert[data-baseweb="notification"][type="info"] {
+    background-color: #f0f8ff !important;
+    border-color: var(--focus-outline) !important;
+    color: #003d7a !important;
+}
+
+/* Loading indicators */
+.stSpinner {
+    border: 3px solid var(--border) !important;
+    border-top: 3px solid var(--focus-outline) !important;
+}
+
+/* Sidebar improvements */
+.css-1d391kg {
+    border-right: 2px solid var(--border) !important;
+}
+
+/* Charts accessibility */
+.js-plotly-plot .plotly .modebar {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Expander improvements */
+.streamlit-expanderHeader {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    font-weight: 600 !important;
+}
+
+/* Tabs improvements */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: var(--secondary-text) !important;
+    font-weight: 500 !important;
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--primary-text) !important;
+    background-color: var(--background) !important;
+    border-bottom: 3px solid var(--focus-outline) !important;
+}
+
+/* Selectbox improvements */
+.selectbox {
+    border: 2px solid var(--border) !important;
+}
+
+.selectbox:focus-within {
+    border-color: var(--focus-outline) !important;
+}
+
+/* Slider improvements */
+.slider {
+    color: var(--focus-outline) !important;
+}
+
+/* File uploader improvements */
+.uploader {
+    border: 2px dashed var(--border) !important;
+    background-color: var(--surface) !important;
+}
+
+.uploader:focus-within {
+    border-color: var(--focus-outline) !important;
+    border-style: solid !important;
+}
+
+/* Chat input improvements */
+.stChatInput {
+    border: 2px solid var(--border) !important;
+}
+
+.stChatInput:focus-within {
+    border-color: var(--focus-outline) !important;
+}
+
+/* Multi-select improvements */
+.stMultiSelect {
+    border: 2px solid var(--border) !important;
+}
+
+.stMultiSelect:focus-within {
+    border-color: var(--focus-outline) !important;
+}
+
+/* Radio buttons */
+.stRadio {
+    color: var(--primary-text) !important;
+}
+
+.stRadio label {
+    padding: 0.5rem !important;
+    margin: 0.25rem !important;
+    border: 1px solid transparent !important;
+    border-radius: 4px !important;
+}
+
+.stRadio label:hover {
+    background-color: var(--surface) !important;
+}
+
+.stRadio input[type="radio"]:focus + label {
+    outline: 2px solid var(--focus-outline) !important;
+    outline-offset: 2px !important;
+}
+
+/* Checkboxes */
+.stCheckbox {
+    color: var(--primary-text) !important;
+}
+
+.stCheckbox label {
+    padding: 0.5rem !important;
+    margin: 0.25rem 0 !important;
+}
+
+.stCheckbox input[type="checkbox"]:focus + label {
+    outline: 2px solid var(--focus-outline) !important;
+    outline-offset: 2px !important;
+}
+
+/* Code blocks */
+.stCode {
+    background-color: #f8f8f8 !important;
+    border: 1px solid var(--border) !important;
+    color: var(--primary-text) !important;
+}
+
+/* Tooltips */
+tooltip {
+    background-color: var(--primary-text) !important;
+    color: var(--background) !important;
+    border: 1px solid var(--border) !important;
+    font-size: 0.9rem !important;
+}
+
+/* Progress bars */
+.stProgress {
+    background-color: var(--border) !important;
+}
+
+.stProgress .progress-bar {
+    background-color: var(--focus-outline) !important;
+}
+
+/* Buttons with icons */
+button[kind="header"],
+button[kind="primary"] {
+    background-color: var(--focus-outline) !important;
+    color: white !important;
+    border: 2px solid var(--focus-outline) !important;
+}
+
+button[kind="header"]:hover,
+button[kind="primary"]:hover {
+    background-color: var(--link-hover) !important;
+    border-color: var(--link-hover) !important;
+}
+
+/* Secondary buttons */
+button[kind="secondary"] {
+    background-color: transparent !important;
+    color: var(--focus-outline) !important;
+    border: 2px solid var(--focus-outline) !important;
+}
+
+button[kind="secondary"]:hover {
+    background-color: var(--surface) !important;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Screen reader only text */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --border: #000000;
+        --focus-outline: #ff0000;
+    }
+}

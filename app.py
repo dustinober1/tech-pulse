@@ -33,6 +33,13 @@ from src.phase7.user_management.ui_components import UIComponents
 # Configure page
 st.set_page_config(**PAGE_CONFIG)
 
+# Load custom CSS for accessibility
+def load_css():
+    """Load custom CSS for better accessibility"""
+    with open("assets/styles.css", "r") as f:
+        css = f.read()
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
 # Initialize session state
 def initialize_session_state():
     """Initialize session state variables"""
@@ -72,6 +79,9 @@ def initialize_session_state():
         del st.session_state.auto_refresh
     if 'refresh_countdown' in st.session_state:
         del st.session_state.refresh_countdown
+    # Onboarding tracking
+    if 'onboarding_completed' not in st.session_state:
+        st.session_state.onboarding_completed = False
 
 def create_header():
     """Create dashboard header"""
@@ -85,6 +95,42 @@ def create_header():
         </p>
     </div>
     """, unsafe_allow_html=True)
+
+def show_onboarding_if_needed():
+    """Show onboarding dialog for first-time users"""
+    if not st.session_state.onboarding_completed:
+        with st.expander("👋 Welcome to Tech-Pulse Dashboard!", expanded=True):
+            st.markdown("""
+            ### Getting Started
+
+            Tech-Pulse Dashboard provides real-time analysis of tech news from multiple sources. Here's what you need to know:
+
+            #### Key Features:
+            - **📊 Real-time Analysis**: Fetch and analyze trending stories from Hacker News, Reddit, RSS feeds, and Twitter
+            - **🎭 Sentiment Analysis**: Understand the emotional tone of news stories (Positive 😊, Negative 😟, or Neutral 😐)
+            - **🔍 Semantic Search**: Find stories by meaning, not just keywords
+            - **📈 Trend Prediction**: AI-powered predictions for trending topics
+            - **📄 Executive Briefings**: Generate professional PDF reports
+
+            #### How to Use:
+            1. **Start**: Click "Load Data" to fetch the latest stories
+            2. **Customize**: Use the Control Panel on the left to adjust settings
+            3. **Explore**: Browse through tabs for different analyses
+            4. **Search**: Use semantic search to find specific topics
+            5. **Export**: Download data or generate PDF reports
+
+            #### Accessibility:
+            - Use Tab key to navigate between elements
+            - Press Enter to select buttons and options
+            - High contrast colors are enabled for better visibility
+            - All charts include alt text for screen readers
+
+            Need help? Check the Help tab in the sidebar!
+            """)
+
+            if st.button("✅ Got it!", key="onboarding_complete"):
+                st.session_state.onboarding_completed = True
+                st.rerun()
 
 def create_sidebar():
     """Create interactive sidebar"""
@@ -963,8 +1009,14 @@ def create_content_in_placeholder(placeholder):
 
 def main():
     """Main dashboard function"""
+    # Load custom CSS for accessibility
+    load_css()
+
     # Initialize session state
     initialize_session_state()
+
+    # Show onboarding for first-time users
+    show_onboarding_if_needed()
 
     # Create header
     create_header()
@@ -974,12 +1026,12 @@ def main():
 
     # Create tabs for different features
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📊 News Analysis",
-        "🔍 Semantic Search",
-        "📈 Trend Predictions",
-        "🔍 Anomaly Detection",
-        "🤖 Model Training",
-        "👤 User Profile"
+        "📊 News Feed",
+        "🔍 Smart Search",
+        "📈 Trend Forecast",
+        "🚨 Breaking News",
+        "🤖 AI Insights",
+        "👤 My Dashboard"
     ])
 
     with tab1:

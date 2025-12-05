@@ -23,6 +23,14 @@ Welcome to Tech-Pulse, your real-time dashboard for analyzing trending tech stor
 - Generate executive briefings and reports
 - Track predictions for future trending stories
 
+### Accessibility Commitment
+Tech-Pulse is designed to be accessible to all users:
+- **Full Keyboard Navigation**: Use Tab, Enter, and Arrow keys
+- **High Contrast Colors**: Improved visibility for all users
+- **Screen Reader Support**: Compatible with assistive technologies
+- **Clear Error Messages**: Helpful guidance when issues occur
+- **Plain Language**: Technical terms explained simply
+
 ## Getting Started
 
 ### Accessing the Dashboard

@@ -74,29 +74,38 @@ EXPORT_FORMATS = ["CSV", "JSON", "Excel"]
 
 # Help text
 HELP_TEXT = {
-    "sentiment": "Sentiment analysis uses VADER to classify story titles as Positive, Negative, or Neutral based on emotional tone.",
-    "topics": "Topic modeling uses BERTopic to group similar stories and extract key themes from Hacker News titles.",
-    "metrics": "Metrics provide insights into the current tech news landscape, including overall sentiment and trending topics.",
-    "refresh": "Click 'Refresh Data' to fetch the latest stories from Hacker News and update all analyses.",
-    "real_time_mode": "Real-time mode automatically refreshes data every 60 seconds to provide the latest Hacker News stories and insights.",
-    "real_time_enable": "Enable real-time mode to activate automatic 60-second refresh intervals and live data updates.",
-    "refresh_interval": "The 60-second refresh interval means the dashboard will automatically fetch and analyze new Hacker News stories every minute to keep your insights current.",
-    "troubleshooting": "If real-time updates aren't working: check your internet connection, ensure the Hacker News API is accessible, and verify that your browser supports automatic refresh.",
-    "semantic_search": "Semantic search uses machine learning embeddings to find stories with similar meanings to your query. It understands context and concepts, not just keywords."
+    "sentiment": "Sentiment analysis evaluates the emotional tone of news headlines. Positive 😊 means optimistic/good news, Negative 😟 means concerning/bad news, and Neutral 😐 means factual/balanced reporting.",
+    "topics": "Topic groups similar news stories together based on their content (e.g., 'AI & Machine Learning' or 'Cybersecurity'). This helps you understand what themes are trending in tech.",
+    "metrics": "Key insights about current tech news: Overall Vibe shows if news is generally positive or negative, Total Comments indicates community engagement, and Top Trend highlights the most discussed topic.",
+    "refresh": "Click 'Refresh Data' to get the latest stories. This fetches new articles and updates all analyses with current information.",
+    "real_time_mode": "Automatically updates data every minute to keep you informed of breaking tech news without manual refresh.",
+    "real_time_enable": "Turn on automatic updates. The dashboard will refresh itself every 60 seconds to show the latest stories.",
+    "refresh_interval": "Updates happen every minute to balance freshness with performance. You'll always see recent stories without overwhelming the system.",
+    "troubleshooting": "If updates aren't working: 1) Check your internet connection 2) Try manually clicking Refresh Data 3) Wait a moment and retry 4) Contact support if issues persist.",
+    "semantic_search": "Smart search that understands meaning. Search for 'AI regulation' and it finds stories about 'AI laws', 'tech policy', etc., not just exact word matches.",
+    "vader": "VADER is a sentiment analysis tool specialized for social media and news text. It's great at understanding emotions in headlines.",
+    "bertopic": "An AI tool that reads all stories and automatically groups them by topic. It identifies trends like 'Cloud Computing' or 'Mobile Tech'.",
+    "embeddings": "Mathematical representations of text that capture meaning. Similar stories have similar embeddings, enabling smart search.",
+    "anomaly_detection": "Finds unusual patterns in tech news that might indicate breaking stories or unexpected developments.",
+    "trend_prediction": "Uses historical data and current patterns to predict which topics will trend in the near future."
 }
 
 # Error messages
 ERROR_MESSAGES = {
-    "no_data": "No data available. Please refresh to fetch latest stories.",
-    "api_error": "Unable to fetch data from Hacker News. Please try again later.",
-    "analysis_error": "Error analyzing data. Please refresh and try again.",
-    "connection_error": "Connection error. Please check your internet connection.",
-    "real_time_failure": "Real-time mode encountered an error. Switching to manual refresh mode.",
-    "rate_limit_error": "API rate limit exceeded. Please wait before refreshing or reduce refresh frequency.",
-    "connection_during_real_time": "Connection lost during real-time updates. Reconnecting automatically...",
-    "real_time_timeout": "Real-time update timed out. Please check your connection and try again.",
-    "initialization_error": "Failed to initialize real-time mode. Please refresh the page and try again.",
-    "configuration_error": "Real-time configuration error. Using default settings."
+    "no_data": "No stories available. Click 'Refresh Data' to fetch the latest tech news.",
+    "api_error": "Cannot reach the news servers right now. This is usually temporary. Try again in a few minutes.",
+    "analysis_error": "Unable to analyze the stories. Please refresh to try again with fresh data.",
+    "connection_error": "Internet connection issue. Please check your WiFi/network and try again.",
+    "real_time_failure": "Auto-update failed. Switched to manual mode - click 'Refresh Data' for updates.",
+    "rate_limit_error": "Too many requests! Please wait 1 minute before refreshing again.",
+    "connection_during_real_time": "Connection interrupted. Trying to reconnect... (Will switch to manual if this continues)",
+    "real_time_timeout": "Update took too long. Your connection might be slow. Try manual refresh.",
+    "initialization_error": "Cannot start auto-update. Please refresh the page and try again.",
+    "configuration_error": "Settings issue. Using safe default values instead.",
+    "pdf_error": "Cannot generate PDF report. Check if you have data loaded and try again.",
+    "search_error": "Search failed. Make sure you've loaded data first, then try searching again.",
+    "model_loading": "AI models are loading... This may take a moment on first use.",
+    "cache_error": "Cache issue detected. Refreshing with fresh data..."
 }
 
 # Success messages
