@@ -129,6 +129,46 @@ class VectorSearchManager:
 
         return self._collection
 
+    def initialize(self) -> bool:
+        """Initialize the vector search engine."""
+        try:
+            _ = self.embedding_model
+            _ = self.collection
+            self.logger.info("VectorSearchManager initialized successfully")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to initialize: {str(e)}")
+            return False
+
+    def clear_collection(self) -> bool:
+        """Clear all documents from the collection."""
+        try:
+            try:
+                self.chroma_client.delete_collection(name=self.collection_name)
+            except Exception:
+                pass
+            self._collection = self.chroma_client.create_collection(
+                name=self.collection_name,
+                metadata={"description": "Tech stories vector embeddings"}
+            )
+            self.logger.info(f"Collection '{self.collection_name}' cleared")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to clear collection: {str(e)}")
+            return False
+
+    def get_collection_info(self) -> Dict[str, Any]:
+        """Get collection info."""
+        try:
+            return {
+                'name': self.collection_name,
+                'count': self.collection.count(),
+                'model': self.model_name,
+                'persist_directory': self.persist_directory
+            }
+        except Exception as e:
+            return {'name': self.collection_name, 'count': 0, 'error': str(e)}
+
     def generate_embeddings(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
         """
         Generate embeddings for a list of texts.
@@ -159,20 +199,38 @@ class VectorSearchManager:
             raise RuntimeError(f"Embedding generation failed: {str(e)}")
 
     def add_documents(self,
-                      documents: List[str],
-                      ids: List[str],
+                      documents,
+                      ids: Optional[List[str]] = None,
                       metadata: Optional[List[Dict[str, Any]]] = None) -> bool:
         """
         Add documents to the vector store.
 
         Args:
-            documents: List of document texts
-            ids: List of unique document IDs
-            metadata: Optional list of metadata dictionaries
+            documents: List of document texts (strings) OR list of dicts with 'text', 'id', and metadata
+            ids: List of unique document IDs (optional if documents is list of dicts)
+            metadata: Optional list of metadata dictionaries (optional if documents is list of dicts)
 
         Returns:
             bool: True if successful, False otherwise
         """
+        # Handle dict format from data_loader
+        if documents and isinstance(documents[0], dict):
+            # Extract from dict format
+            doc_texts = []
+            doc_ids = []
+            doc_metadata = []
+
+            for doc in documents:
+                doc_texts.append(doc.get('text', ''))
+                doc_ids.append(doc.get('id', ''))
+                # Extract metadata from the dict
+                meta = {k: v for k, v in doc.items() if k not in ['text', 'id']}
+                doc_metadata.append(meta)
+
+            documents = doc_texts
+            ids = doc_ids
+            metadata = doc_metadata
+
         if len(documents) != len(ids):
             raise ValueError("Number of documents and IDs must match")
 
@@ -202,7 +260,8 @@ class VectorSearchManager:
     def search(self,
                query: str,
                n_results: int = 10,
-               where: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+               where: Optional[Dict[str, Any]] = None,
+               similarity_threshold: Optional[float] = None) -> Dict[str, Any]:
         """
         Search for similar documents.
 
@@ -210,9 +269,10 @@ class VectorSearchManager:
             query: Search query string
             n_results: Number of results to return
             where: Optional metadata filter
+            similarity_threshold: Optional minimum similarity threshold
 
         Returns:
-            Dictionary containing search results
+            Dictionary containing search results with similarity scores
         """
         try:
             # Generate query embedding
@@ -228,11 +288,19 @@ class VectorSearchManager:
             # Format results
             formatted_results = []
             for i, doc_id in enumerate(results['ids'][0]):
+                distance = results['distances'][0][i] if 'distances' in results else 0
+                similarity = 1 - distance  # Calculate similarity from distance
+
+                # Apply similarity threshold if provided
+                if similarity_threshold is not None and similarity < similarity_threshold:
+                    continue
+
                 formatted_results.append({
                     'id': doc_id,
                     'document': results['documents'][0][i],
                     'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
-                    'distance': results['distances'][0][i] if 'distances' in results else None
+                    'distance': distance,
+                    'similarity': similarity
                 })
 
             return {

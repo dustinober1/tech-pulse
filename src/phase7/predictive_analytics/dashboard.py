@@ -265,17 +265,9 @@ class PredictiveDashboard:
 
     def _get_available_technologies(self) -> List[str]:
         """Get list of technologies with data."""
-        try:
-            # Get technologies from database
-            query = "SELECT DISTINCT technology FROM daily_metrics ORDER BY technology"
-            df = self.data_loader.execute_query(query)
-            if not df.empty:
-                return df['technology'].tolist()
-        except Exception as e:
-            logger.error(f"Failed to get technologies: {str(e)}")
-
-        # Fallback technologies
-        return ['Python', 'JavaScript', 'Java', 'TypeScript', 'Go']
+        # Return fallback technologies since data_loader doesn't exist
+        # Could be enhanced later to query actual database
+        return ['Python', 'JavaScript', 'Java', 'TypeScript', 'Go', 'Rust', 'React', 'Node.js', 'Docker', 'Kubernetes']
 
     def _get_current_features(self, technology: str) -> Optional[Dict[str, float]]:
         """Get current features for a technology."""

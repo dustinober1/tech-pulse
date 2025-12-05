@@ -106,7 +106,7 @@ class MultiSourceAggregator:
 
         # RSS fetch task
         if rss_categories:
-            task = self._fetch_rss_content(rass_categories, max_items_per_source, hours_ago)
+            task = self._fetch_rss_content(rss_categories, max_items_per_source, hours_ago)
             tasks.append(('rss', task))
 
         # Twitter fetch task

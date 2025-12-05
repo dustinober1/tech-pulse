@@ -1062,33 +1062,22 @@ def render_news_analysis_tab():
     """Render the news analysis tab"""
     # Check if real-time mode is enabled
     if st.session_state.real_time_mode:
-        # Create placeholder for real-time content
-        placeholder = create_realtime_display()
+        # Use st_autorefresh for non-blocking auto-refresh
+        from streamlit_autorefresh import st_autorefresh
 
-        # Real-time loop
-        while True:
+        # Auto-refresh every 60 seconds when real-time mode is on
+        count = st_autorefresh(
+            interval=REAL_TIME_SETTINGS['refresh_interval'] * 1000,  # Convert to milliseconds
+            limit=None,  # No limit on refreshes
+            key="realtime_refresh"
+        )
+
+        # Check if we need to refresh data
+        if st.session_state.last_update_time is None or count > 0:
             try:
-                # Check if we need to refresh data
-                if st.session_state.last_update_time is None:
-                    # First time load
-                    refresh_data()
-                else:
-                    # Check if 60 seconds have passed
-                    time_since_refresh = (datetime.now() - st.session_state.last_update_time).seconds
-                    if time_since_refresh >= REAL_TIME_SETTINGS['refresh_interval']:
-                        refresh_data()
-
-                # Update content display
-                create_content_in_placeholder(placeholder)
-
-                # Sleep for 60 seconds before next update
-                time.sleep(REAL_TIME_SETTINGS['refresh_interval'])
-
+                refresh_data()
             except Exception as e:
-                # Handle exceptions gracefully without breaking the loop
                 st.error(f"Real-time update error: {str(e)}")
-                # Continue the loop after a short delay
-                time.sleep(REAL_TIME_SETTINGS['retry_delay'])
     else:
         # Manual mode - display timestamp and content once
         # Display timestamp in top-right

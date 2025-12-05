@@ -23,8 +23,11 @@ from vector_cache_manager import get_vector_cache_manager
 try:
     nltk.data.find('sentiment/vader_lexicon.zip')
 except LookupError:
-    print("Downloading VADER lexicon for sentiment analysis...")
-    nltk.download('vader_lexicon')
+    try:
+        print("Downloading VADER lexicon for sentiment analysis...")
+        nltk.download('vader_lexicon', quiet=True)
+    except Exception as e:
+        print(f"Warning: Could not download VADER lexicon: {e}. Sentiment analysis may be limited.")
 
 
 def fetch_story_ids(base_url: str = "https://hacker-news.firebaseio.com/v0") -> Optional[List[int]]:
@@ -35,7 +38,7 @@ def fetch_story_ids(base_url: str = "https://hacker-news.firebaseio.com/v0") -> 
         List of story IDs or None if fetch fails
     """
     try:
-        response = requests.get(f"{base_url}/topstories.json")
+        response = requests.get(f"{base_url}/topstories.json", timeout=10)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -57,7 +60,7 @@ def fetch_story_details(story_id: int, base_url: str = "https://hacker-news.fire
         Dictionary of story details or None if fetch fails
     """
     try:
-        response = requests.get(f"{base_url}/item/{story_id}.json")
+        response = requests.get(f"{base_url}/item/{story_id}.json", timeout=10)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
