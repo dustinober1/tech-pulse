@@ -280,7 +280,8 @@ class TestVectorSearchManager(unittest.TestCase):
         mock_model_instance.encode.assert_called_once_with([query])
 
         # Verify collection.query was called
-        expected_embedding = test_embedding.tolist()
+        # The code does [0].tolist(), so we need to extract the first row
+        expected_embedding = test_embedding[0].tolist()
         mock_collection_instance.query.assert_called_once_with(
             query_embeddings=[expected_embedding],
             n_results=5,
