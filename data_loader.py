@@ -530,3 +530,305 @@ if __name__ == '__main__':
                     print(f"     Similarity: {result['similarity_score']:.3f}")
             else:
                 print("  No results found")
+
+
+# Multi-Source Integration Functions (Phase 7.3)
+
+async def fetch_multi_source_data(
+    hn_limit: int = 30,
+    include_reddit: bool = True,
+    include_rss: bool = True,
+    include_twitter: bool = True,
+    use_cache: bool = True,
+    cache_duration_hours: int = 1
+) -> pd.DataFrame:
+    """
+    Fetch data from multiple sources (Hacker News, Reddit, RSS, Twitter).
+
+    Args:
+        hn_limit: Number of Hacker News stories to fetch
+        include_reddit: Whether to include Reddit data
+        include_rss: Whether to include RSS feeds
+        include_twitter: Whether to include Twitter data
+        use_cache: Whether to use cached data
+        cache_duration_hours: Cache duration in hours
+
+    Returns:
+        Combined DataFrame with data from all sources
+    """
+    import asyncio
+    from phase7.source_connectors.aggregator import MultiSourceAggregator
+
+    # Initialize aggregator
+    aggregator = MultiSourceAggregator()
+
+    # Fetch Hacker News data first (main source)
+    hn_df = fetch_hn_data(limit=hn_limit, use_cache=use_cache, cache_duration_hours=cache_duration_hours)
+
+    # Convert to list of dictionaries for aggregation
+    all_stories = []
+
+    # Add Hacker News stories
+    if not hn_df.empty:
+        for _, row in hn_df.iterrows():
+            story = {
+                'title': row['title'],
+                'content': row['title'],  # HN doesn't have content
+                'url': row.get('url', ''),
+                'author': 'hn_user',  # HN API doesn't provide author in list
+                'published': row['time'],
+                'source': 'hackernews',
+                'source_type': 'hackernews',
+                'score': row.get('score', 0),
+                'num_comments': row.get('descendants', 0),
+                'sentiment_label': row.get('sentiment_label', ''),
+                'topic_keyword': row.get('topic_keyword', ''),
+                'metadata': {
+                    'hn_id': row.get('hn_id', ''),
+                    'original_score': row.get('score', 0),
+                    'original_comments': row.get('descendants', 0)
+                }
+            }
+            all_stories.append(story)
+
+    # Fetch additional sources if enabled
+    if include_reddit or include_rss or include_twitter:
+        # Configure source selection
+        reddit_subs = ['technology', 'programming', 'MachineLearning'] if include_reddit else None
+        rss_categories = ['news', 'ai', 'development'] if include_rss else None
+        twitter_keywords = ['tech', 'AI', 'programming'] if include_twitter else None
+
+        # Fetch from sources (this uses mock data for now)
+        try:
+            # Run the async operation
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+            source_data = loop.run_until_complete(
+                aggregator.fetch_all_sources(
+                    reddit_subreddits=reddit_subs,
+                    rss_categories=rss_categories,
+                    twitter_keywords=twitter_keywords,
+                    hours_ago=24,
+                    max_items_per_source=50
+                )
+            )
+
+            loop.close()
+
+            # Convert to our format
+            for source, items in source_data.items():
+                if items and source in ['reddit', 'rss', 'twitter']:
+                    for item in items:
+                        # Standardize the item format
+                        if source == 'reddit':
+                            story = {
+                                'title': item.get('title', ''),
+                                'content': item.get('selftext', '') or item.get('title', ''),
+                                'url': item.get('permalink', item.get('url', '')),
+                                'author': item.get('author', ''),
+                                'published': item.get('created_utc', datetime.now()),
+                                'source': 'reddit',
+                                'source_type': 'reddit',
+                                'score': item.get('score', 0),
+                                'num_comments': item.get('num_comments', 0),
+                                'subreddit': item.get('subreddit', ''),
+                                'metadata': {
+                                    'reddit_id': item.get('id', ''),
+                                    'upvote_ratio': item.get('upvote_ratio', 0),
+                                    'comments': item.get('comments', [])
+                                }
+                            }
+                        elif source == 'rss':
+                            story = {
+                                'title': item.get('title', ''),
+                                'content': item.get('content', '') or item.get('summary', ''),
+                                'url': item.get('url', ''),
+                                'author': item.get('author', ''),
+                                'published': item.get('published', datetime.now()),
+                                'source': 'rss',
+                                'source_type': 'rss',
+                                'score': item.get('engagement_score', 0) * 100,  # Convert to similar scale
+                                'num_comments': 0,  # RSS doesn't have comments
+                                'source_name': item.get('source', ''),
+                                'categories': item.get('categories', []),
+                                'metadata': {
+                                    'rss_id': item.get('id', ''),
+                                    'read_time': item.get('read_time', 0),
+                                    'word_count': item.get('metadata', {}).get('word_count', 0)
+                                }
+                            }
+                        elif source == 'twitter':
+                            story = {
+                                'title': item.get('text', '')[:100],  # Use first 100 chars as title
+                                'content': item.get('text', ''),
+                                'url': item.get('url', ''),
+                                'author': item.get('author', ''),
+                                'published': item.get('created_at', datetime.now()),
+                                'source': 'twitter',
+                                'source_type': 'twitter',
+                                'score': item.get('like_count', 0) + item.get('retweet_count', 0) * 2,
+                                'num_comments': item.get('reply_count', 0),
+                                'hashtags': item.get('hashtags', []),
+                                'retweet_count': item.get('retweet_count', 0),
+                                'like_count': item.get('like_count', 0),
+                                'metadata': {
+                                    'twitter_id': item.get('id', ''),
+                                    'verified': item.get('verified', False)
+                                }
+                            }
+                        else:
+                            continue
+
+                        all_stories.append(story)
+
+        except Exception as e:
+            print(f"Error fetching multi-source data: {e}")
+
+    # Convert to DataFrame
+    if not all_stories:
+        return pd.DataFrame()
+
+    # Create DataFrame
+    df = pd.DataFrame(all_stories)
+
+    # Add analysis columns
+    df = analyze_multi_source_sentiment(df)
+    df = extract_multi_source_topics(df)
+
+    # Sort by combined score and recency
+    df['combined_score'] = (
+        df['score'] * 0.5 +
+        df['num_comments'] * 0.3 +
+        (1 / (df['published'].apply(lambda x: (datetime.now() - x).total_seconds() / 3600) + 1)) * 0.2
+    )
+
+    df = df.sort_values('combined_score', ascending=False)
+
+    print(f"Fetched {len(df)} total stories from all sources")
+    print(f"Source breakdown: {df['source'].value_counts().to_dict()}")
+
+    return df
+
+
+def analyze_multi_source_sentiment(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Analyze sentiment for multi-source data.
+
+    Args:
+        df: DataFrame with multi-source stories
+
+    Returns:
+        DataFrame with sentiment analysis
+    """
+    if df.empty:
+        return df
+
+    # Initialize sentiment analyzer
+    analyzer = SentimentIntensityAnalyzer()
+
+    # Analyze sentiment for content (not just title)
+    df['sentiment'] = df['content'].apply(lambda x: analyzer.polarity_scores(str(x))['compound'])
+
+    # Create sentiment labels
+    df['sentiment_label'] = df['sentiment'].apply(lambda x:
+        'Positive' if x > 0.05 else 'Negative' if x < -0.05 else 'Neutral')
+
+    # Add source-specific sentiment analysis
+    for source in df['source'].unique():
+        mask = df['source'] == source
+        source_sentiment = df.loc[mask, 'sentiment'].mean()
+        print(f"Average {source} sentiment: {source_sentiment:.3f}")
+
+    return df
+
+
+def extract_multi_source_topics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract topics from multi-source data with source awareness.
+
+    Args:
+        df: DataFrame with multi-source stories
+
+    Returns:
+        DataFrame with topic analysis
+    """
+    if df.empty or len(df) < 5:
+        return df
+
+    # Create topics with source prefix to avoid conflicts
+    df['text_with_source'] = df.apply(
+        lambda row: f"[{row['source']}] {row['title']}",
+        axis=1
+    )
+
+    try:
+        # Initialize BERTopic
+        topic_model = BERTopic(
+            language="english",
+            calculate_probabilities=False,
+            verbose=False
+        )
+
+        # Fit topics
+        topics, _ = topic_model.fit_transform(df['text_with_source'].tolist())
+
+        # Add topic column
+        df['topic_keyword'] = topics
+
+        # Map topic numbers to keywords
+        topic_info = topic_model.get_topic_info()
+        topic_map = {row['Topic']: row['Name'] for _, row in topic_info.iterrows()}
+
+        # Replace numeric topics with descriptive names
+        df['topic_keyword'] = df['topic_keyword'].map(topic_map).fillna('Unknown Topic')
+
+        # Count topics per source
+        print("\nTopics by source:")
+        for source in df['source'].unique():
+            source_topics = df[df['source'] == source]['topic_keyword'].value_counts()
+            print(f"\n{source}:")
+            for topic, count in source_topics.head(3).items():
+                print(f"  {topic}: {count} stories")
+
+    except Exception as e:
+        print(f"Error in topic extraction: {e}")
+        df['topic_keyword'] = 'Outlier/No Topic'
+
+    return df
+
+
+def get_multi_source_trends(df: pd.DataFrame, hours: int = 24) -> Dict[str, Any]:
+    """
+    Get trending analysis from multi-source data.
+
+    Args:
+        df: DataFrame with multi-source stories
+        hours: Time window in hours
+
+    Returns:
+        Dictionary with trend analysis
+    """
+    if df.empty:
+        return {}
+
+    # Filter by time window
+    cutoff_time = datetime.now() - timedelta(hours=hours)
+    recent_df = df[df['published'] > cutoff_time]
+
+    trends = {
+        'total_stories': len(recent_df),
+        'source_distribution': recent_df['source'].value_counts().to_dict(),
+        'top_topics': recent_df['topic_keyword'].value_counts().head(5).to_dict(),
+        'sentiment_breakdown': recent_df['sentiment_label'].value_counts().to_dict(),
+        'avg_sentiment_by_source': {},
+        'most_engaging': recent_df.nlargest(5, 'combined_score')[['title', 'source', 'combined_score']].to_dict('records'),
+        'sources_with_comments': recent_df.groupby('source')['num_comments'].sum().to_dict()
+    }
+
+    # Calculate average sentiment by source
+    for source in recent_df['source'].unique():
+        source_df = recent_df[recent_df['source'] == source]
+        trends['avg_sentiment_by_source'][source] = source_df['sentiment'].mean()
+
+    return trends

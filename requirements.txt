@@ -10,3 +10,10 @@ sentence-transformers>=2.2.0
 pyarrow>=14.0.0
 tabulate>=0.9.0
 chromadb>=0.4.0
+
+# Phase 7.3: Multi-Source Integration Dependencies
+aiohttp>=3.9.0
+feedparser>=6.0.10
+python-dateutil>=2.8.2
+tweepy>=4.14.0
+pydantic>=2.0.0

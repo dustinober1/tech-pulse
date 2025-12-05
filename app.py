@@ -11,7 +11,11 @@ from datetime import datetime, timedelta
 import time
 
 # Import our custom modules
-from data_loader import fetch_hn_data, analyze_sentiment, get_topics, setup_vector_db, semantic_search
+from data_loader import (
+    fetch_hn_data, analyze_sentiment, get_topics, setup_vector_db, semantic_search,
+    fetch_multi_source_data, analyze_multi_source_sentiment, extract_multi_source_topics,
+    get_multi_source_trends
+)
 from dashboard_config import (
     PAGE_CONFIG, COLORS, SENTIMENT_COLORS, DEFAULT_SETTINGS,
     CHART_CONFIG, HELP_TEXT, ERROR_MESSAGES, SUCCESS_MESSAGES, LOADING_MESSAGES,
@@ -100,6 +104,46 @@ def create_sidebar():
 
         st.markdown("---")
 
+        # Multi-Source Options (Phase 7.3)
+        st.markdown("### 🔌 Multi-Source Settings")
+
+        # Initialize multi-source settings in session state if not exists
+        if 'multi_source_enabled' not in st.session_state:
+            st.session_state.multi_source_enabled = False
+        if 'include_reddit' not in st.session_state:
+            st.session_state.include_reddit = True
+        if 'include_rss' not in st.session_state:
+            st.session_state.include_rss = True
+        if 'include_twitter' not in st.session_state:
+            st.session_state.include_twitter = True
+
+        # Multi-source toggle
+        multi_source_enabled = st.checkbox(
+            "🌐 Enable Multi-Source",
+            value=st.session_state.multi_source_enabled,
+            help="Fetch data from multiple sources (Reddit, RSS feeds, Twitter) in addition to Hacker News"
+        )
+        st.session_state.multi_source_enabled = multi_source_enabled
+
+        # Source selection (only show if multi-source is enabled)
+        if multi_source_enabled:
+            st.markdown("**Select Sources:**")
+            include_reddit = st.checkbox("Reddit", value=st.session_state.include_reddit, help="Include posts from Reddit")
+            include_rss = st.checkbox("RSS Feeds", value=st.session_state.include_rss, help="Include tech news from RSS feeds")
+            include_twitter = st.checkbox("Twitter", value=st.session_state.include_twitter, help="Include tweets from tech influencers")
+
+            # Update session state
+            st.session_state.include_reddit = include_reddit
+            st.session_state.include_rss = include_rss
+            st.session_state.include_twitter = include_twitter
+        else:
+            # Update session state to false when multi-source is disabled
+            st.session_state.include_reddit = False
+            st.session_state.include_rss = False
+            st.session_state.include_twitter = False
+
+        st.markdown("---")
+
         # Refresh button
         if st.button("🔄 Refresh Data", type="primary", use_container_width=True):
             refresh_data()
@@ -185,13 +229,38 @@ def create_metrics_row(df):
     if df is None or df.empty:
         return
 
+    # Check if this is multi-source data
+    is_multi_source = 'source' in df.columns and len(df['source'].unique()) > 1
+
     # Calculate metrics
-    avg_sentiment = df['sentiment_score'].mean()
-    total_comments = df['descendants'].sum()
+    if is_multi_source:
+        # Multi-source metrics
+        avg_sentiment = df['sentiment'].mean() if 'sentiment' in df.columns else 0
+        total_comments = df['num_comments'].sum() if 'num_comments' in df.columns else 0
+        total_stories = len(df)
+    else:
+        # Hacker News metrics (original)
+        avg_sentiment = df['sentiment_score'].mean()
+        total_comments = df['descendants'].sum()
+        total_stories = len(df)
 
     # Get top topic
     if 'topic_keyword' in df.columns:
-        top_topic = df[df['topic_keyword'] != 'Outlier/No Topic']['topic_keyword'].mode().iloc[0] if len(df[df['topic_keyword'] != 'Outlier/No Topic']) > 0 else "No topics"
+        # For multi-source, handle topics differently
+        if is_multi_source:
+            # Remove source prefixes from topics for cleaner display
+            df_clean_topics = df.copy()
+            if df_clean_topics['topic_keyword'].dtype == 'object':
+                df_clean_topics['topic_clean'] = df_clean_topics['topic_keyword'].str.replace(r'^\[[^\]]+\]\s*', '', regex=True)
+                valid_topics = df_clean_topics[df_clean_topics['topic_clean'] != 'Outlier/No Topic']
+                if len(valid_topics) > 0:
+                    top_topic = valid_topics['topic_clean'].mode().iloc[0]
+                else:
+                    top_topic = "No topics"
+            else:
+                top_topic = "No topics"
+        else:
+            top_topic = df[df['topic_keyword'] != 'Outlier/No Topic']['topic_keyword'].mode().iloc[0] if len(df[df['topic_keyword'] != 'Outlier/No Topic']) > 0 else "No topics"
     else:
         top_topic = "No topics"
 
@@ -221,7 +290,7 @@ def create_metrics_row(df):
         st.metric(
             label="💬 Total Comments",
             value=f"{total_comments:,}",
-            delta="Engagement"
+            delta=f"From {total_stories} stories" if is_multi_source else "Engagement"
         )
 
     with col3:
@@ -230,6 +299,36 @@ def create_metrics_row(df):
             value=top_topic.replace("_", " ").title(),
             delta="Trending Now"
         )
+
+    # Show source breakdown if multi-source
+    if is_multi_source:
+        st.markdown("---")
+        st.markdown("### 📊 Source Breakdown")
+
+        # Create source metrics
+        source_cols = st.columns(len(df['source'].unique()))
+
+        for i, (source, source_df) in enumerate(df.groupby('source')):
+            with source_cols[i]:
+                # Source-specific metrics
+                source_count = len(source_df)
+                source_comments = source_df['num_comments'].sum() if 'num_comments' in source_df.columns else 0
+                source_sentiment = source_df['sentiment'].mean() if 'sentiment' in source_df.columns else 0
+
+                # Determine source icon
+                source_icons = {
+                    'hackernews': '🍊',
+                    'reddit': '🤖',
+                    'rss': '📰',
+                    'twitter': '🐦'
+                }
+                icon = source_icons.get(source, '📊')
+
+                st.metric(
+                    label=f"{icon} {source.title()}",
+                    value=f"{source_count}",
+                    delta=f"{source_comments} comments"
+                )
 
 def create_charts_row(df):
     """Create charts display row"""
@@ -452,47 +551,128 @@ def create_data_table(df):
         return
 
     with st.expander("📋 View Raw Data", expanded=False):
-        # Select display columns
-        display_columns = ['title', 'score', 'sentiment_label', 'topic_keyword', 'time']
-        available_columns = [col for col in display_columns if col in df.columns]
+        # Check if multi-source data
+        is_multi_source = 'source' in df.columns
+
+        # Select display columns based on data type
+        if is_multi_source:
+            display_columns = ['title', 'source', 'score', 'sentiment_label', 'topic_keyword', 'published']
+            # Map column names for consistency
+            df_display = df.copy()
+            if 'published' in df_display.columns:
+                df_display['time'] = df_display['published']
+            if 'num_comments' in df_display.columns:
+                df_display['comments'] = df_display['num_comments']
+        else:
+            display_columns = ['title', 'score', 'sentiment_label', 'topic_keyword', 'time']
+            df_display = df.copy()
+
+        available_columns = [col for col in display_columns if col in df_display.columns]
 
         if available_columns:
             # Format the data for display
-            display_df = df[available_columns].copy()
+            display_df = df_display[available_columns].copy()
 
             # Format time for better readability
-            if 'time' in display_df.columns:
-                display_df['time'] = display_df['time'].dt.strftime('%Y-%m-%d %H:%M')
+            time_col = 'published' if 'published' in display_df.columns else 'time'
+            if time_col in display_df.columns:
+                display_df[time_col] = display_df[time_col].dt.strftime('%Y-%m-%d %H:%M')
+
+            # Add source badge if multi-source
+            if is_multi_source and 'source' in display_df.columns:
+                source_icons = {
+                    'hackernews': '🍊',
+                    'reddit': '🤖',
+                    'rss': '📰',
+                    'twitter': '🐦'
+                }
+                display_df['source'] = display_df['source'].apply(
+                    lambda x: f"{source_icons.get(x, '📊')} {x.title()}"
+                )
 
             # Create clickable titles
-            if 'url' in df.columns:
-                display_df['title'] = df.apply(
+            if 'url' in df_display.columns:
+                display_df['title'] = df_display.apply(
                     lambda row: f"[{row['title']}]({row['url']})" if pd.notna(row['url']) else row['title'],
                     axis=1
                 )
 
+            # Add comments if available
+            if 'num_comments' in df_display.columns:
+                display_df['comments'] = df_display['num_comments']
+                if 'comments' not in available_columns and len(display_columns) < 7:
+                    display_df = display_df[['title', 'source', 'score', 'comments', 'sentiment_label', 'topic_keyword', time_col]] if is_multi_source else display_df
+
             st.dataframe(display_df, use_container_width=True)
         else:
-            st.dataframe(df)
+            st.dataframe(df_display)
 
 def refresh_data():
-    """Refresh data from Hacker News"""
+    """Refresh data from Hacker News and optional multi-sources"""
     try:
         # Show loading spinner
         with st.spinner(LOADING_MESSAGES['fetching']):
-            # Fetch data
-            df = fetch_hn_data(limit=st.session_state.stories_count)
+            # Check if multi-source is enabled
+            if st.session_state.multi_source_enabled:
+                # Fetch from multiple sources
+                import asyncio
+
+                # Create a simple event loop for async operation
+                try:
+                    # Try to get existing loop
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, create new one in thread
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            future = executor.submit(
+                                asyncio.run,
+                                fetch_multi_source_data(
+                                    hn_limit=st.session_state.stories_count,
+                                    include_reddit=st.session_state.include_reddit,
+                                    include_rss=st.session_state.include_rss,
+                                    include_twitter=st.session_state.include_twitter,
+                                    use_cache=True,
+                                    cache_duration_hours=1
+                                )
+                            )
+                            df = future.result()
+                    else:
+                        # Use existing loop
+                        df = asyncio.run(
+                            fetch_multi_source_data(
+                                hn_limit=st.session_state.stories_count,
+                                include_reddit=st.session_state.include_reddit,
+                                include_rss=st.session_state.include_rss,
+                                include_twitter=st.session_state.include_twitter,
+                                use_cache=True,
+                                cache_duration_hours=1
+                            )
+                        )
+                except Exception as async_error:
+                    print(f"Async error, falling back to single source: {async_error}")
+                    # Fallback to just Hacker News
+                    df = fetch_hn_data(limit=st.session_state.stories_count)
+            else:
+                # Fetch only Hacker News data
+                df = fetch_hn_data(limit=st.session_state.stories_count)
 
             if df.empty:
                 st.error(ERROR_MESSAGES['no_data'])
                 return
 
-        with st.spinner(LOADING_MESSAGES['analyzing']):
-            # Analyze sentiment
-            df = analyze_sentiment(df)
+        # Skip analysis if multi-source data is already analyzed
+        if not (st.session_state.multi_source_enabled and 'sentiment' in df.columns):
+            with st.spinner(LOADING_MESSAGES['analyzing']):
+                if st.session_state.multi_source_enabled and 'source' in df.columns:
+                    # Multi-source data already analyzed
+                    pass
+                else:
+                    # Analyze sentiment for Hacker News data
+                    df = analyze_sentiment(df)
 
-            # Extract topics
-            df = get_topics(df)
+                    # Extract topics
+                    df = get_topics(df)
 
         # Store in session state
         st.session_state.data = df
