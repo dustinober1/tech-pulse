@@ -6,7 +6,7 @@ import unittest
 import sys
 import os
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, MagicMock
 
 # Add the parent directory to the path
@@ -114,9 +114,14 @@ class TestDashboardInitialization(unittest.TestCase):
         app.initialize_session_state()
 
         # Check required keys
-        required_keys = ['data', 'last_refresh', 'auto_refresh', 'stories_count', 'refresh_countdown']
+        required_keys = ['data', 'last_refresh', 'real_time_mode', 'last_update_time',
+                        'stories_count', 'vector_collection', 'vector_db_initialized', 'search_results']
         for key in required_keys:
             self.assertIn(key, app.st.session_state)
+
+        # Check that auto_refresh and refresh_countdown are removed
+        self.assertNotIn('auto_refresh', app.st.session_state)
+        self.assertNotIn('refresh_countdown', app.st.session_state)
 
     def test_initialize_session_state_preserves_existing(self):
         """Test that initialization preserves existing session state"""
@@ -172,7 +177,7 @@ class TestDashboardComponents(unittest.TestCase):
         # Mock session state
         app.st.session_state.data = pd.DataFrame()
         app.st.session_state.last_refresh = datetime.now()
-        app.st.session_state.auto_refresh = False
+        app.st.session_state.real_time_mode = False
         app.st.session_state.stories_count = 30
 
         app.create_sidebar()
@@ -351,8 +356,8 @@ class TestDashboardDataOperations(unittest.TestCase):
 
     def test_check_auto_refresh_disabled(self):
         """Test auto-refresh when disabled"""
-        app.st.session_state.auto_refresh = False
-        app.st.session_state.last_refresh = datetime.now()
+        app.st.session_state.real_time_mode = False
+        app.st.session_state.last_update_time = datetime.now()
 
         # Should not trigger refresh
         app.check_auto_refresh()
@@ -360,8 +365,8 @@ class TestDashboardDataOperations(unittest.TestCase):
     @patch('app.refresh_data')
     def test_check_auto_refresh_enabled_not_triggered(self, mock_refresh):
         """Test auto-refresh when enabled but not time yet"""
-        app.st.session_state.auto_refresh = True
-        app.st.session_state.last_refresh = datetime.now()
+        app.st.session_state.real_time_mode = True
+        app.st.session_state.last_update_time = datetime.now()
 
         # Should not trigger refresh (not enough time passed)
         app.check_auto_refresh()
@@ -370,10 +375,10 @@ class TestDashboardDataOperations(unittest.TestCase):
     @patch('app.refresh_data')
     def test_check_auto_refresh_enabled_triggered(self, mock_refresh):
         """Test auto-refresh when enabled and time passed"""
-        app.st.session_state.auto_refresh = True
-        # Set last refresh to more than refresh interval ago
-        old_time = datetime.now() - pd.Timedelta(seconds=DEFAULT_SETTINGS['refresh_interval'] + 60)
-        app.st.session_state.last_refresh = old_time
+        app.st.session_state.real_time_mode = True
+        # Set last update to more than 60 seconds ago
+        old_time = datetime.now() - timedelta(seconds=61)
+        app.st.session_state.last_update_time = old_time
 
         # Should trigger refresh
         app.check_auto_refresh()

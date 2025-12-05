@@ -86,7 +86,7 @@ def create_sidebar():
             refresh_data()
 
         # Real-time mode toggle
-        real_time_mode = st.toggle(
+        real_time_mode = st.checkbox(
             "Enable Real-Time Mode",
             value=st.session_state.real_time_mode,
             help="Automatically refresh data every 60 seconds for live updates"

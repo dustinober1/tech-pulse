@@ -8,3 +8,5 @@
 - All test will be in the test/ folder
 - All test results will be in the test_results/ folder
 - at the end of each phase update the readme file
+- Use context7 for evey operations to get the most up to date documentation
+- All internal use only docs, other than plans, will go into the docs/ folder
