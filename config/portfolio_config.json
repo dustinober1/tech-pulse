@@ -1,0 +1,36 @@
+{
+  "experiment_tracking": {
+    "database_path": "data/experiments.db",
+    "artifact_dir": "artifacts/",
+    "auto_log": true,
+    "log_level": "INFO"
+  },
+  "model_registry": {
+    "storage_path": "models/",
+    "versioning": "semantic",
+    "retention_policy": "keep_best_n",
+    "n_models_to_keep": 5
+  },
+  "feature_engineering": {
+    "nlp_model": "en_core_web_sm",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "max_features": 100,
+    "feature_selection_method": "mutual_info"
+  },
+  "interpretability": {
+    "shap_background_samples": 100,
+    "lime_num_features": 10,
+    "pdp_grid_resolution": 50
+  },
+  "data_quality": {
+    "missing_threshold": 0.3,
+    "outlier_method": "iqr",
+    "outlier_threshold": 3.0,
+    "min_samples": 100
+  },
+  "testing": {
+    "coverage_threshold": 0.80,
+    "property_test_iterations": 100,
+    "random_seed": 42
+  }
+}

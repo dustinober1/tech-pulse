@@ -52,3 +52,10 @@ logs/
 build/
 temp/
 coverage/
+.claude/
+.github/
+.hypothesis/
+.kiro
+.pytest_cache/
+.streamlit/
+.vscode/

@@ -50,3 +50,7 @@ psycopg2-binary>=2.9.0
 cryptography>=41.0.0
 gunicorn>=21.0.0
 nginx-configparser>=1.0.0
+
+# Portfolio Enhancement Dependencies
+hypothesis>=6.92.0
+pytest-cov>=4.1.0
