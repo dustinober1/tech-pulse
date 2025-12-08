@@ -1,0 +1,154 @@
+{
+  "timestamp": "2025-12-07T21:45:49.489107",
+  "tests_run": 276,
+  "failures": 5,
+  "errors": 100,
+  "success_rate": 61.95652173913043,
+  "was_successful": false,
+  "test_classes": {
+    "TestDeploymentReady": {
+      "passed": 0,
+      "failed": 1
+    },
+    "TestRequirements": {
+      "passed": 0,
+      "failed": 1
+    },
+    "TestSemanticSearchIntegration": {
+      "passed": 0,
+      "failed": 3
+    },
+    "TestVectorSearchUtilityFunctions": {
+      "passed": 0,
+      "failed": 1
+    },
+    "phase7": {
+      "passed": 0,
+      "failed": 3
+    },
+    "portfolio": {
+      "passed": 0,
+      "failed": 2
+    },
+    "TestDashboardComponents": {
+      "passed": 0,
+      "failed": 1
+    },
+    "TestDashboardInitialization": {
+      "passed": 0,
+      "failed": 2
+    },
+    "TestDashboardMain": {
+      "passed": 0,
+      "failed": 2
+    },
+    "_FailedTest": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestRealtimeErrorHandling": {
+      "passed": 0,
+      "failed": 6
+    },
+    "TestRealtimeLoopMocking": {
+      "passed": 0,
+      "failed": 1
+    },
+    "TestRealtimePlaceholderContainer": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestRealtimeSessionState": {
+      "passed": 0,
+      "failed": 5
+    },
+    "TestRealtimeToggle": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestTimestampDisplay": {
+      "passed": 0,
+      "failed": 3
+    },
+    "TestConcurrentOperations": {
+      "passed": 0,
+      "failed": 3
+    },
+    "TestModeSwitching": {
+      "passed": 0,
+      "failed": 5
+    },
+    "TestRealtimeRefreshCycle": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestUIResponsiveness": {
+      "passed": 0,
+      "failed": 8
+    },
+    "TestAPIRateLimiting": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestBrowserBehavior": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestMemoryUsage": {
+      "passed": 0,
+      "failed": 4
+    },
+    "TestPerformanceMetrics": {
+      "passed": 0,
+      "failed": 3
+    },
+    "TestResourceUsage": {
+      "passed": 0,
+      "failed": 1
+    },
+    "TestSearchPerformance": {
+      "passed": 0,
+      "failed": 8
+    },
+    "TestVectorSearchManagerIntegration": {
+      "passed": 0,
+      "failed": 3
+    },
+    "TestVectorCacheManager": {
+      "passed": 0,
+      "failed": 2
+    },
+    "TestVectorSearchEngine": {
+      "passed": 0,
+      "failed": 8
+    },
+    "TestVectorSearchErrorHandling": {
+      "passed": 0,
+      "failed": 2
+    },
+    "TestVectorSearchManager": {
+      "passed": 0,
+      "failed": 3
+    },
+    "TestFetchStoryIds": {
+      "passed": 4,
+      "failed": 0
+    },
+    "TestFetchStoryDetails": {
+      "passed": 3,
+      "failed": 0
+    },
+    "TestExtractStoryData": {
+      "passed": 6,
+      "failed": 0
+    },
+    "TestProcessStoriesToDataframe": {
+      "passed": 4,
+      "failed": 0
+    },
+    "TestFetchHnData": {
+      "passed": 5,
+      "failed": 0
+    }
+  }
+}

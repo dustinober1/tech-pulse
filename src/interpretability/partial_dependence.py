@@ -13,7 +13,6 @@ from sklearn.inspection import partial_dependence
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
 from sklearn.base import is_classifier, is_regressor
 
-from config import get_config
 
 
 class PartialDependencePlotter:

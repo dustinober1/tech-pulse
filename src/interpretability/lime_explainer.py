@@ -8,7 +8,6 @@ import warnings
 import base64
 import io
 
-from config import get_config
 
 
 class LIMEExplainer:

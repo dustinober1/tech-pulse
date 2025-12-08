@@ -10,7 +10,6 @@ import io
 from datetime import datetime
 import json
 
-from config import get_config
 from .shap_explainer import SHAPExplainer
 from .lime_explainer import LIMEExplainer
 from .partial_dependence import PartialDependencePlotter

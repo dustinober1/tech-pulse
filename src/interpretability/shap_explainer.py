@@ -8,7 +8,6 @@ import warnings
 import base64
 import io
 
-from config import get_config
 
 
 class SHAPExplainer:
@@ -58,7 +57,8 @@ class SHAPExplainer:
             elif hasattr(self.model, 'coef_'):
                 self.explainer = shap.LinearExplainer(
                     self.model,
-                    data=self.background_data
+                    masker=self.background_data,
+                    feature_perturbation="independent"
                 )
             else:
                 # Fall back to generic explainer
@@ -117,11 +117,11 @@ class SHAPExplainer:
         """
         # Ensure 2D array for SHAP
         if isinstance(X_instance, pd.Series):
-            X_instance = X_instance.values.reshape(1, -1)
             feature_names = X_instance.index.tolist()
+            X_instance = X_instance.values.reshape(1, -1)
         elif isinstance(X_instance, np.ndarray):
-            X_instance = X_instance.reshape(1, -1)
             feature_names = getattr(self, 'feature_names', [f'feature_{i}' for i in range(X_instance.shape[1])])
+            X_instance = X_instance.reshape(1, -1)
         else:
             raise ValueError("X_instance must be a pandas Series or numpy array")
 
@@ -158,6 +158,11 @@ class SHAPExplainer:
             shap_array = np.array(self.shap_values)
         else:
             shap_array = self.shap_values
+
+        # Handle 3D SHAP values (binary/multi-class)
+        if len(shap_array.shape) == 3:
+            # Use the positive class (last axis) for binary classification
+            shap_array = shap_array[:, :, -1] if shap_array.shape[2] == 2 else shap_array.mean(axis=2)
 
         # Calculate feature importance (mean absolute SHAP value)
         feature_importance = np.mean(np.abs(shap_array), axis=0)

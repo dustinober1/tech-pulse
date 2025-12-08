@@ -110,7 +110,16 @@ def save_test_results(result, stdout_output, stderr_output):
         test_classes = {}
 
         for test_name, test_result in result.failures + result.errors:
-            class_name = test_name.split('(')[1].split(')')[0] if '(' in test_name else 'Unknown'
+            # Handle test name parsing more robustly
+            if hasattr(test_name, 'id'):
+                # For unittest.TestCase items
+                test_id = test_name.id()
+                class_name = test_id.split('.')[-2] if '.' in test_id else 'Unknown'
+            elif isinstance(test_name, str):
+                # For string representations
+                class_name = test_name.split('(')[1].split(')')[0] if '(' in test_name else 'Unknown'
+            else:
+                class_name = 'Unknown'
             if class_name not in test_classes:
                 test_classes[class_name] = {'passed': 0, 'failed': 0}
             test_classes[class_name]['failed'] += 1
