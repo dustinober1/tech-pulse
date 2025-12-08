@@ -517,8 +517,10 @@ class FeatureTransformer:
                         sparse_output=False
                     )))
                 elif self.config.categorical_encoding_method == 'ordinal':
+                    handle_unknown = 'use_encoded_value' if self.config.handle_unknown_categories == 'ignore' else 'error'
                     categorical_steps.append(('encoder', OrdinalEncoder(
-                        handle_unknown=self.config.handle_unknown_categories
+                        handle_unknown=handle_unknown,
+                        unknown_value=-1
                     )))
 
             # Create categorical pipeline
@@ -742,45 +744,52 @@ class FeatureTransformer:
         if not self.pipeline_ or not self.fitted_:
             return self.original_columns_.copy()
 
-        # Get feature names from the last step
-        last_step = self.pipeline_.steps[-1][1]
-
-        if hasattr(last_step, 'get_feature_names_out'):
+        # For ColumnTransformer, use get_feature_names_out directly
+        if hasattr(self.pipeline_, 'get_feature_names_out'):
             try:
-                return list(last_step.get_feature_names_out())
+                feature_names = list(self.pipeline_.get_feature_names_out())
+                # Clean up feature names (remove prefixes like "numeric__", "categorical__")
+                cleaned_names = []
+                for name in feature_names:
+                    # Remove transformer name prefix
+                    if '__' in name:
+                        cleaned_names.append(name.split('__', 1)[1])
+                    else:
+                        cleaned_names.append(name)
+                return cleaned_names
             except:
                 pass
 
         # Fallback: try to infer from transformations
-        output_cols = self.original_columns_.copy()
+        output_cols = []
 
-        # Add polynomial features
-        if self.config.create_polynomial_features:
-            numeric_cols = [
-                col for col in self.original_columns_
-                if self.feature_types_.get(col, 'numeric') == 'numeric'
-            ]
-            if numeric_cols:
-                poly = PolynomialFeatures(
-                    degree=self.config.polynomial_degree,
-                    include_bias=self.config.polynomial_include_bias
-                )
-                poly.fit(pd.DataFrame({col: [0] for col in numeric_cols}))
-                poly_features = poly.get_feature_names_out()
-                output_cols.extend(poly_features)
+        # Get names from each transformer in the ColumnTransformer
+        for name, transformer, columns in self.pipeline_.transformers_:
+            if hasattr(transformer, 'get_feature_names_out'):
+                try:
+                    if hasattr(transformer, 'steps_') and transformer.steps_:
+                        # For Pipeline transformers
+                        last_step = transformer.steps_[-1][1]
+                        if hasattr(last_step, 'get_feature_names_out'):
+                            names = list(last_step.get_feature_names_out())
+                            # Update one-hot encoded feature names
+                            if name == 'categorical' and self.config.categorical_encoding_method == 'onehot':
+                                for i, col in enumerate(columns):
+                                    if i < len(names):
+                                        output_cols.append(names[i])
+                            else:
+                                output_cols.extend(names)
+                        else:
+                            output_cols.extend(columns)
+                    else:
+                        # For simple transformers
+                        output_cols.extend(columns)
+                except:
+                    output_cols.extend(columns)
+            else:
+                output_cols.extend(columns)
 
-        # Add one-hot encoded features
-        if self.config.categorical_encoding_method == 'onehot':
-            categorical_cols = [
-                col for col in self.original_columns_
-                if self.feature_types_.get(col) == 'categorical'
-            ]
-            if categorical_cols:
-                for col in categorical_cols:
-                    unique_vals = pd.Series(['A', 'B', 'C']).nunique()  # Placeholder
-                    output_cols.extend([f"{col}_{val}" for val in range(unique_vals)])
-
-        return output_cols
+        return output_cols or self.original_columns_.copy()
 
     def _store_metadata(self, X: pd.DataFrame):
         """Store metadata about fitted transformations."""
@@ -849,10 +858,21 @@ class LogTransformer(CustomTransformer):
         Args:
             offset: Value to add before taking log
         """
-        def log_func(X):
-            return np.log(X + offset)
+        self.offset = offset
+        super().__init__(self._log_transform, None)
 
-        super().__init__(log_func, [f"log_{col}" for col in range(10)])
+    def _log_transform(self, X):
+        """Apply log transformation."""
+        if isinstance(X, pd.DataFrame):
+            return np.log(X + self.offset)
+        else:
+            return np.log(X + self.offset)
+
+    def get_feature_names_out(self, input_features=None):
+        """Get output feature names."""
+        if input_features is None:
+            return [f"log_{i}" for i in range(10)]
+        return [f"log_{col}" for col in input_features]
 
 
 class BinningTransformer(CustomTransformer):
@@ -869,11 +889,40 @@ class BinningTransformer(CustomTransformer):
         self.n_bins = n_bins
         self.strategy = strategy
         self.bin_edges_ = {}
+        super().__init__(self._bin_transform, None)
 
-        def bin_func(X):
+    def _bin_transform(self, X):
+        """Apply binning transformation."""
+        if isinstance(X, pd.DataFrame):
+            result = pd.DataFrame(index=X.index)
+            for col in X.columns:
+                if self.strategy == 'uniform':
+                    edges = np.linspace(
+                        X[col].min(),
+                        X[col].max(),
+                        self.n_bins + 1
+                    )
+                elif self.strategy == 'quantile':
+                    edges = np.quantile(X[col], np.linspace(0, 1, self.n_bins + 1))
+                else:
+                    edges = np.linspace(
+                        X[col].min(),
+                        X[col].max(),
+                        self.n_bins + 1
+                    )
+
+                self.bin_edges_[col] = edges
+                # digitize returns 1 to n_bins+1, subtract 1 to get 0 to n_bins
+                binned = np.digitize(X[col], edges) - 1
+                # Clamp values to be within [0, n_bins-1]
+                binned = np.clip(binned, 0, self.n_bins - 1)
+                result[col] = binned
+            return result
+        else:
+            # Handle numpy array
             result = []
-            for i, col in enumerate(X.T):
-                col_name = f"bin_{i}"
+            for i in range(X.shape[1]):
+                col_name = f"col_{i}"
                 if self.strategy == 'uniform':
                     edges = np.linspace(
                         X[:, i].min(),
@@ -890,13 +939,18 @@ class BinningTransformer(CustomTransformer):
                     )
 
                 self.bin_edges_[col_name] = edges
+                # digitize returns 1 to n_bins+1, subtract 1 to get 0 to n_bins
                 binned = np.digitize(X[:, i], edges) - 1
+                # Clamp values to be within [0, n_bins-1]
+                binned = np.clip(binned, 0, self.n_bins - 1)
                 result.append(binned)
-
             return np.array(result).T
 
-        feature_names = [f"bin_{i}" for i in range(X.shape[1])]
-        super().__init__(bin_func, feature_names)
+    def get_feature_names_out(self, input_features=None):
+        """Get output feature names."""
+        if input_features is None:
+            return [f"bin_{i}" for i in range(len(self.bin_edges_))]
+        return input_features
 
 
 class CyclicalTransformer(CustomTransformer):
@@ -910,23 +964,36 @@ class CyclicalTransformer(CustomTransformer):
             max_values: Maximum values for each feature
         """
         self.max_values = max_values or {}
+        super().__init__(self._cyclic_transform, None)
 
-        def cyclic_func(X):
+    def _cyclic_transform(self, X):
+        """Apply cyclical transformation."""
+        if isinstance(X, pd.DataFrame):
+            result = pd.DataFrame(index=X.index)
+            for col in X.columns:
+                max_val = self.max_values.get(col, X[col].max() if X[col].max() > 0 else 2 * np.pi)
+                if max_val == 0:
+                    max_val = 2 * np.pi
+                result[f"{col}_sin"] = np.sin(2 * np.pi * X[col] / max_val)
+                result[f"{col}_cos"] = np.cos(2 * np.pi * X[col] / max_val)
+            return result
+        else:
+            # Handle numpy array
             result = []
-            for i, col in enumerate(X.T):
-                col_name = f"cyclic_{i}"
+            for i in range(X.shape[1]):
+                col_name = f"col_{i}"
                 max_val = self.max_values.get(col_name, 2 * np.pi)
-
-                # Apply sine and cosine transformations
                 sin_col = np.sin(2 * np.pi * X[:, i] / max_val)
                 cos_col = np.cos(2 * np.pi * X[:, i] / max_val)
-
                 result.extend([sin_col, cos_col])
-
             return np.array(result).T
 
-        feature_names = []
-        for i in range(X.shape[1]):
-            feature_names.extend([f"cyclic_{i}_sin", f"cyclic_{i}_cos"])
+    def get_feature_names_out(self, input_features=None):
+        """Get output feature names."""
+        if input_features is None:
+            return []
 
-        super().__init__(cyclic_func, feature_names)
+        names = []
+        for col in input_features:
+            names.extend([f"{col}_sin", f"{col}_cos"])
+        return names
