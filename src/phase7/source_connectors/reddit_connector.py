@@ -8,7 +8,7 @@ for tech trends analysis and sentiment tracking.
 import os
 import asyncio
 import aiohttp
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional, Any
 import json
 import logging
@@ -424,7 +424,7 @@ class RedditConnector:
         upvote_ratio = post.get('upvote_ratio', 0.5)
 
         # Adjust for post age (newer posts get higher engagement rate)
-        age_hours = (datetime.now() - post['created_utc']).total_seconds() / 3600
+        age_hours = (datetime.now(timezone.utc) - post['created_utc']).total_seconds() / 3600
 
         if age_hours < 1:
             age_factor = 1.0

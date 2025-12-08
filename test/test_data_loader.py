@@ -34,7 +34,7 @@ class TestFetchStoryIds(unittest.TestCase):
         result = fetch_story_ids()
 
         self.assertEqual(result, [1, 2, 3, 4, 5])
-        mock_get.assert_called_once_with("https://hacker-news.firebaseio.com/v0/topstories.json")
+        mock_get.assert_called_once_with("https://hacker-news.firebaseio.com/v0/topstories.json", timeout=10)
 
     @patch('data_loader.requests.get')
     @patch('builtins.print')
@@ -72,7 +72,7 @@ class TestFetchStoryIds(unittest.TestCase):
         result = fetch_story_ids("https://custom-api.example.com/v0")
 
         self.assertEqual(result, [10, 20, 30])
-        mock_get.assert_called_once_with("https://custom-api.example.com/v0/topstories.json")
+        mock_get.assert_called_once_with("https://custom-api.example.com/v0/topstories.json", timeout=10)
 
 
 class TestFetchStoryDetails(unittest.TestCase):
@@ -97,7 +97,7 @@ class TestFetchStoryDetails(unittest.TestCase):
 
         self.assertEqual(result['id'], 123)
         self.assertEqual(result['title'], 'Test Story')
-        mock_get.assert_called_once_with("https://hacker-news.firebaseio.com/v0/item/123.json")
+        mock_get.assert_called_once_with("https://hacker-news.firebaseio.com/v0/item/123.json", timeout=10)
 
     @patch('data_loader.requests.get')
     @patch('builtins.print')
@@ -123,7 +123,7 @@ class TestFetchStoryDetails(unittest.TestCase):
         result = fetch_story_details(456, "https://custom-api.example.com/v0")
 
         self.assertEqual(result['id'], 456)
-        mock_get.assert_called_once_with("https://custom-api.example.com/v0/item/456.json")
+        mock_get.assert_called_once_with("https://custom-api.example.com/v0/item/456.json", timeout=10)
 
 
 class TestExtractStoryData(unittest.TestCase):

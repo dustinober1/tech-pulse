@@ -38,9 +38,10 @@ class TestUserDatabase(unittest.TestCase):
     def test_initialization(self):
         """Test database initialization"""
         # Check that tables are created
-        tables = self.db._get_connection().__enter__().execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()
+        with self.db._get_connection() as conn:
+            tables = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
 
         table_names = [table[0] for table in tables]
         expected_tables = ['users', 'user_interactions', 'user_topics', 'search_history', 'recommendation_feedback']
@@ -434,7 +435,9 @@ class TestUIComponents(unittest.TestCase):
         self.temp_db.close()
         self.db = UserDatabase(self.temp_db.name)
         self.user_id = self.db.create_user("ui_user", "ui@test.com")
-        self.ui = UIComponents(self.user_id)
+        # Pass the test database instance to UIComponents
+        with patch('phase7.user_management.ui_components.UserDatabase', return_value=self.db):
+            self.ui = UIComponents(self.user_id)
 
     def tearDown(self):
         """Clean up test database"""
@@ -448,14 +451,20 @@ class TestUIComponents(unittest.TestCase):
         self.assertIsNotNone(self.ui.recommendations)
 
     @patch('streamlit.markdown')
-    @patch('streamlit.info')
-    def test_render_mini_profile_card(self, mock_info, mock_markdown):
+    @patch('streamlit.write')
+    @patch('streamlit.metric')
+    @patch('streamlit.progress')
+    @patch('streamlit.caption')
+    def test_render_mini_profile_card(self, mock_caption, mock_progress, mock_metric, mock_write, mock_markdown):
         """Test mini profile card rendering"""
         self.ui.render_mini_profile_card()
 
         # Verify Streamlit methods were called
         mock_markdown.assert_called()
-        mock_info.assert_called()
+        mock_write.assert_called()
+        mock_metric.assert_called()
+        mock_progress.assert_called()
+        mock_caption.assert_called()
 
     def test_format_time_ago(self):
         """Test time ago formatting"""

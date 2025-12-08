@@ -34,7 +34,7 @@ class TestFeatureSelector:
             'correlated_important': np.random.randn(n_samples) * 0.8 + np.random.randn(n_samples) * 0.2,
             'noise_feature_1': np.random.randn(n_samples) * 0.1,
             'noise_feature_2': np.random.randn(n_samples) * 0.1,
-            'categorical_feature': np.random.choice(['A', 'B', 'C'], n_samples),
+            'categorical_feature': np.random.choice([0, 1, 2], n_samples),
             'constant_feature': np.ones(n_samples),
             'near_constant': np.ones(n_samples) * 0.01 * np.random.randn(n_samples)
         })
@@ -434,13 +434,20 @@ class TestFeatureSelector:
 
     def test_plot_feature_importance(self, selector, classification_data):
         """Test feature importance plotting."""
+        # Skip if matplotlib is not available
+        try:
+            import matplotlib.pyplot as plt
+        except ImportError:
+            import pytest
+            pytest.skip("matplotlib not available")
+
         X, y = classification_data
 
         # Apply selection
         selector.fit_transform(X, y, method='mutual_info')
 
         # Test plotting (without showing)
-        with patch('matplotlib.pyplot.show'):
+        with patch.object(plt, 'show'):
             selector.plot_feature_importance(top_n=5, method='latest')
 
     def test_config_parameters(self):

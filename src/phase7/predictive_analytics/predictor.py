@@ -120,9 +120,11 @@ class PredictiveEngine:
         """
         logger.info(f"Training trend model for {technology}")
 
-        # Prepare features
+        # Prepare features - only use numeric columns
         feature_columns = [col for col in features_df.columns
-                          if col != target_column and not col.endswith('_date')]
+                          if col != target_column
+                          and not col.endswith('_date')
+                          and features_df[col].dtype in ['int64', 'float64', 'int32', 'float32']]
         X = features_df[feature_columns].fillna(0)
         y = features_df[target_column].fillna(0)
 
@@ -181,8 +183,10 @@ class PredictiveEngine:
         """
         logger.info(f"Training anomaly model for {technology}")
 
-        # Prepare features
-        feature_columns = [col for col in features_df.columns if not col.endswith('_date')]
+        # Prepare features - only use numeric columns
+        feature_columns = [col for col in features_df.columns
+                          if not col.endswith('_date')
+                          and features_df[col].dtype in ['int64', 'float64', 'int32', 'float32']]
         X = features_df[feature_columns].fillna(0)
 
         # Scale features

@@ -9,6 +9,7 @@ from plotly.subplots import make_subplots
 import pandas as pd
 from datetime import datetime, timedelta
 import time
+from typing import List, Dict
 
 # Import our custom modules
 from data_loader import (

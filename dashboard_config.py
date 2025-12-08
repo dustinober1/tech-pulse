@@ -105,7 +105,7 @@ ERROR_MESSAGES = {
     "pdf_error": "Cannot generate PDF report. Check if you have data loaded and try again.",
     "search_error": "Search failed. Make sure you've loaded data first, then try searching again.",
     "model_loading": "AI models are loading... This may take a moment on first use.",
-    "cache_error": "Cache issue detected. Refreshing with fresh data..."
+    "cache_error": "Cache issue detected. Refreshing with fresh data...",
     "semantic_search_error": "Error during semantic search. Please try again.",
     "semantic_search_initialization_error": "Failed to initialize semantic search. Some features may be unavailable.",
     "pdf_generation_error": "Failed to generate PDF report. Please try again.",
